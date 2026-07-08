@@ -4,10 +4,14 @@
 //! in VS Code and GitHub Copilot environments. It enables:
 //!
 //! - Automated prompt routing to multiple AI providers
-//! - Secure workflow execution with human-in-the-loop controls
+//! - Multi-step workflow state management, including a (currently non-resumable)
+//!   human-review step
 //! - Sub-agent delegation to webpuppet for web-based AI interactions
-//! - Workflow state management and persistence
-//! - Rate limiting and cost tracking across providers
+//!
+//! This is a `0.1.0-alpha` crate — see the "Current Limitations (alpha)" section of the repo
+//! README for what's still a placeholder or not yet implemented (e.g. "parallel"/"consensus"
+//! tools run sequentially against one browser session today; there is no content-screening or
+//! rate-limiting module yet).
 //!
 //! # Architecture
 //!
@@ -19,10 +23,10 @@
 //!                             ▼
 //! ┌─────────────────────────────────────────────────────────────────┐
 //! │                   embeddenator-agent-mcp                         │
-//! │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐   │
-//! │  │ Workflow   │ │ Provider   │ │ Security   │ │ Session    │   │
-//! │  │ Manager    │ │ Router     │ │ Guard      │ │ Manager    │   │
-//! │  └────────────┘ └────────────┘ └────────────┘ └────────────┘   │
+//! │              ┌────────────┐ ┌────────────┐                       │
+//! │              │ Workflow   │ │ Provider   │                       │
+//! │              │ Manager    │ │ Router     │                       │
+//! │              └────────────┘ └────────────┘                       │
 //! └───────────────────────────┬─────────────────────────────────────┘
 //!                             │
 //!         ┌───────────────────┼───────────────────┐
@@ -41,12 +45,12 @@
 //! | Tool | Description |
 //! |------|-------------|
 //! | `agent_prompt` | Send a prompt to best available provider |
+//! | `agent_parallel_prompt` | Send same prompt to multiple providers (sequential today) |
+//! | `agent_consensus` | Collect responses from multiple providers (longest-response heuristic, not semantic agreement) |
 //! | `agent_workflow_start` | Start a multi-step workflow |
 //! | `agent_workflow_step` | Execute next step in workflow |
-//! | `agent_parallel_prompt` | Send same prompt to multiple providers |
-//! | `agent_consensus` | Get consensus answer from multiple providers |
 //! | `agent_status` | Get orchestration status and stats |
-//! | `agent_config` | Configure provider preferences |
+//! | `agent_list_providers` | List available AI providers |
 
 pub mod error;
 pub mod orchestrator;
