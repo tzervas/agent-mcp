@@ -27,7 +27,7 @@ google-adk = []     # Future: Google Agent Development Kit
 
 [dependencies]
 # Webpuppet for browser automation
-embeddenator-webpuppet = { path = "../embeddenator-webpuppet" }
+embeddenator-webpuppet = { git = "https://github.com/tzervas/webpuppet-rs", rev = "bff694c", package = "webpuppet" }
 
 # Async runtime
 tokio = { version = "1.35", features = ["full", "sync", "time"] }
