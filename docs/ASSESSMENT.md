@@ -59,3 +59,7 @@
 | Prefer raw webpuppet-mcp | If only browser prompt needed |
 
 See [ROADMAP.md](ROADMAP.md).
+
+## Tero index
+
+Layer-1 citation index: [docs/tero-index/](tero-index/) (`index.json`, `INDEX.md`, `MANIFEST.toml`).
