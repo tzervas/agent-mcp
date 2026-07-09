@@ -99,7 +99,11 @@ impl ToolRegistry {
     }
 
     /// Execute a tool by name.
-    pub async fn execute(&self, name: &str, arguments: serde_json::Value) -> Result<ToolCallResult> {
+    pub async fn execute(
+        &self,
+        name: &str,
+        arguments: serde_json::Value,
+    ) -> Result<ToolCallResult> {
         let tool = self
             .tools
             .get(name)
@@ -119,7 +123,9 @@ pub struct PromptTool;
 #[derive(Debug, Deserialize)]
 struct PromptArgs {
     message: String,
+    #[allow(dead_code)]
     provider: Option<String>,
+    #[allow(dead_code)]
     context: Option<String>,
 }
 
@@ -161,7 +167,10 @@ impl Tool for PromptTool {
 
         let response = if let Some(provider_str) = args.provider {
             let provider = parse_provider(&provider_str)?;
-            context.orchestrator.prompt_provider(provider, args.message).await?
+            context
+                .orchestrator
+                .prompt_provider(provider, args.message)
+                .await?
         } else {
             context.orchestrator.prompt(args.message).await?
         };
@@ -228,7 +237,9 @@ impl Tool for ParallelPromptTool {
             .collect();
 
         if providers.len() < 2 {
-            return Err(Error::InvalidParams("need at least 2 valid providers".into()));
+            return Err(Error::InvalidParams(
+                "need at least 2 valid providers".into(),
+            ));
         }
 
         let results = context
@@ -309,7 +320,12 @@ impl Tool for ConsensusTool {
             .iter()
             .map(|r| {
                 let marker = if r.selected { "✓" } else { "○" };
-                format!("{} **{}**: {}", marker, r.provider, r.text.chars().take(200).collect::<String>())
+                format!(
+                    "{} **{}**: {}",
+                    marker,
+                    r.provider,
+                    r.text.chars().take(200).collect::<String>()
+                )
             })
             .collect::<Vec<_>>()
             .join("\n\n");
@@ -341,6 +357,7 @@ struct WorkflowStepDef {
     #[serde(rename = "type")]
     step_type: String,
     message: String,
+    #[allow(dead_code)]
     provider: Option<String>,
     providers: Option<Vec<String>>,
 }
@@ -405,7 +422,12 @@ impl Tool for WorkflowStartTool {
                 ),
                 "consensus" => WorkflowStep::consensus(step_def.name, step_def.message),
                 "review" => WorkflowStep::review(step_def.name, step_def.message),
-                _ => return Err(Error::InvalidParams(format!("unknown step type: {}", step_def.step_type))),
+                _ => {
+                    return Err(Error::InvalidParams(format!(
+                        "unknown step type: {}",
+                        step_def.step_type
+                    )))
+                }
             };
             workflow.add_step(step);
         }
@@ -561,13 +583,33 @@ impl Tool for ListProvidersTool {
         _arguments: serde_json::Value,
         _context: &ToolContext,
     ) -> Result<ToolCallResult> {
-        let providers = vec![
-            ("claude", "Claude (Anthropic)", "200k context, artifacts, code execution"),
+        let providers = [
+            (
+                "claude",
+                "Claude (Anthropic)",
+                "200k context, artifacts, code execution",
+            ),
             ("grok", "Grok (X/xAI)", "Real-time info, X integration"),
-            ("gemini", "Gemini (Google)", "2M context, Google integration"),
-            ("chatgpt", "ChatGPT (OpenAI)", "GPT-4o, vision, web search, code"),
-            ("perplexity", "Perplexity AI", "Search-focused, sources cited"),
-            ("notebooklm", "NotebookLM (Google)", "500k context, research assistant"),
+            (
+                "gemini",
+                "Gemini (Google)",
+                "2M context, Google integration",
+            ),
+            (
+                "chatgpt",
+                "ChatGPT (OpenAI)",
+                "GPT-4o, vision, web search, code",
+            ),
+            (
+                "perplexity",
+                "Perplexity AI",
+                "Search-focused, sources cited",
+            ),
+            (
+                "notebooklm",
+                "NotebookLM (Google)",
+                "500k context, research assistant",
+            ),
         ];
 
         let text = providers

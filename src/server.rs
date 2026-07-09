@@ -41,7 +41,7 @@ impl AgentMcpServer {
         let reader = BufReader::new(stdin.lock());
 
         for line in reader.lines() {
-            let line = line.map_err(|e| Error::Io(e))?;
+            let line = line.map_err(Error::Io)?;
             if line.is_empty() {
                 continue;
             }
@@ -53,8 +53,8 @@ impl AgentMcpServer {
 
             debug!("Sending: {}", response_json);
 
-            writeln!(stdout, "{}", response_json).map_err(|e| Error::Io(e))?;
-            stdout.flush().map_err(|e| Error::Io(e))?;
+            writeln!(stdout, "{}", response_json).map_err(Error::Io)?;
+            stdout.flush().map_err(Error::Io)?;
         }
 
         Ok(())
@@ -78,13 +78,11 @@ impl AgentMcpServer {
             "tools/list" => self.handle_tools_list(&request),
             "tools/call" => self.handle_tools_call(&request).await,
             "ping" => self.handle_ping(&request),
-            _ => {
-                McpResponse::error(
-                    request.id,
-                    error_codes::METHOD_NOT_FOUND,
-                    format!("unknown method: {}", request.method),
-                )
-            }
+            _ => McpResponse::error(
+                request.id,
+                error_codes::METHOD_NOT_FOUND,
+                format!("unknown method: {}", request.method),
+            ),
         }
     }
 
@@ -93,7 +91,9 @@ impl AgentMcpServer {
         info!("Initializing MCP server");
 
         let capabilities = ServerCapabilities {
-            tools: Some(ToolCapabilities { list_changed: false }),
+            tools: Some(ToolCapabilities {
+                list_changed: false,
+            }),
             resources: None,
             prompts: None,
         };
@@ -154,7 +154,9 @@ impl AgentMcpServer {
 
         // Execute tool
         match self.registry.execute(name, arguments).await {
-            Ok(result) => McpResponse::success(request.id.clone(), serde_json::to_value(result).unwrap()),
+            Ok(result) => {
+                McpResponse::success(request.id.clone(), serde_json::to_value(result).unwrap())
+            }
             Err(e) => {
                 error!("Tool execution failed: {}", e);
                 McpResponse::error(

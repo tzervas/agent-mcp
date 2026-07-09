@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use tokio::sync::RwLock;
 
-use embeddenator_webpuppet::{Provider, PromptRequest, PromptResponse, WebPuppet};
+use embeddenator_webpuppet::{PromptRequest, PromptResponse, Provider, WebPuppet};
 
 use crate::error::{Error, Result};
 use crate::router::{ProviderRouter, TaskType};
@@ -83,7 +83,7 @@ impl AgentOrchestrator {
         let start = Instant::now();
 
         let puppet = self.get_puppet().await?;
-        
+
         // Authenticate if needed
         puppet.authenticate(provider).await?;
 
@@ -117,7 +117,7 @@ impl AgentOrchestrator {
         let puppet = self.get_puppet().await?;
 
         let mut results = Vec::new();
-        
+
         // Run sequentially for browser-based providers
         // Future: API providers could run in parallel
         for provider in providers {
@@ -131,7 +131,7 @@ impl AgentOrchestrator {
             // Send prompt
             let request = PromptRequest::new(&message);
             let prompt_result = puppet.prompt(provider, request).await;
-            
+
             results.push((provider, prompt_result.map_err(Error::from)));
         }
 
@@ -147,7 +147,7 @@ impl AgentOrchestrator {
         min_providers: usize,
     ) -> Result<ConsensusResult> {
         let message = message.into();
-        
+
         // Select providers
         let router = self.router.read().await;
         let providers = router.select_multiple(min_providers.max(3), TaskType::General)?;
@@ -191,7 +191,7 @@ impl AgentOrchestrator {
             .map(|(p, r)| ProviderResponse {
                 provider: p.to_string(),
                 text: r.text.clone(),
-                selected: best.as_ref().map_or(false, |(bp, _)| bp == p),
+                selected: best.as_ref().is_some_and(|(bp, _)| bp == p),
                 confidence: None,
             })
             .collect();
@@ -237,7 +237,11 @@ impl AgentOrchestrator {
 
         let start = Instant::now();
         let result = match &step_config {
-            StepConfig::Prompt { message, provider, context } => {
+            StepConfig::Prompt {
+                message,
+                provider,
+                context,
+            } => {
                 let provider = provider
                     .as_ref()
                     .and_then(|p| match p.to_lowercase().as_str() {
@@ -283,7 +287,7 @@ impl AgentOrchestrator {
                     .collect();
 
                 let results = self.parallel_prompt(message.clone(), providers).await?;
-                
+
                 let responses: Vec<_> = results
                     .iter()
                     .filter_map(|(p, r)| {
@@ -310,8 +314,13 @@ impl AgentOrchestrator {
                     metadata: HashMap::new(),
                 }
             }
-            StepConfig::Consensus { message, min_providers } => {
-                let consensus = self.consensus_prompt(message.clone(), *min_providers).await?;
+            StepConfig::Consensus {
+                message,
+                min_providers,
+            } => {
+                let consensus = self
+                    .consensus_prompt(message.clone(), *min_providers)
+                    .await?;
 
                 StepResult {
                     output: consensus.consensus_text,
@@ -333,7 +342,7 @@ impl AgentOrchestrator {
                 let step = workflow.current_mut().unwrap();
                 step.state = StepState::WaitingForHuman;
                 workflow.state = WorkflowState::Paused;
-                
+
                 return Err(Error::Workflow("waiting for human review".into()));
             }
             _ => {

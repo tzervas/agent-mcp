@@ -114,7 +114,11 @@ pub enum ContentItem {
     Image { data: String, mime_type: String },
     /// Resource content.
     #[serde(rename = "resource")]
-    Resource { uri: String, mime_type: String, text: Option<String> },
+    Resource {
+        uri: String,
+        mime_type: String,
+        text: Option<String>,
+    },
 }
 
 impl ContentItem {

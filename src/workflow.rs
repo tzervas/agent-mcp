@@ -71,7 +71,7 @@ impl Workflow {
         }
         self.current_step += 1;
         self.updated_at = Utc::now();
-        
+
         if self.current_step >= self.steps.len() {
             self.state = WorkflowState::Completed;
         }
@@ -86,7 +86,10 @@ impl Workflow {
 
     /// Check if workflow is complete.
     pub fn is_complete(&self) -> bool {
-        matches!(self.state, WorkflowState::Completed | WorkflowState::Failed(_))
+        matches!(
+            self.state,
+            WorkflowState::Completed | WorkflowState::Failed(_)
+        )
     }
 
     /// Set context value.
@@ -157,7 +160,11 @@ impl WorkflowStep {
     }
 
     /// Create a parallel prompt step.
-    pub fn parallel(name: impl Into<String>, message: impl Into<String>, providers: Vec<String>) -> Self {
+    pub fn parallel(
+        name: impl Into<String>,
+        message: impl Into<String>,
+        providers: Vec<String>,
+    ) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             name: name.into(),
@@ -274,9 +281,7 @@ pub enum StepConfig {
     },
     /// Human review configuration.
     #[serde(rename = "human_review")]
-    HumanReview {
-        prompt: String,
-    },
+    HumanReview { prompt: String },
     /// Conditional configuration.
     #[serde(rename = "conditional")]
     Conditional {
