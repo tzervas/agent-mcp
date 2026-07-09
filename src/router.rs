@@ -40,17 +40,17 @@ impl ProviderRouter {
     /// Select the best provider for a task.
     pub fn select_best(&self, task_type: TaskType) -> Result<Provider> {
         let available = self.available_providers();
-        
+
         if available.is_empty() {
             return Err(Error::NoProviders("no healthy providers available".into()));
         }
 
         // Score each provider
         let mut best: Option<(Provider, f64)> = None;
-        
+
         for provider in available {
             let score = self.score_provider(provider, &task_type);
-            if best.map_or(true, |(_, s)| score > s) {
+            if best.is_none_or(|(_, s)| score > s) {
                 best = Some((provider, score));
             }
         }
@@ -62,7 +62,7 @@ impl ProviderRouter {
     /// Select multiple providers for parallel/consensus tasks.
     pub fn select_multiple(&self, count: usize, task_type: TaskType) -> Result<Vec<Provider>> {
         let available = self.available_providers();
-        
+
         if available.len() < count {
             return Err(Error::NoProviders(format!(
                 "need {} providers but only {} available",
@@ -76,9 +76,9 @@ impl ProviderRouter {
             .into_iter()
             .map(|p| (p, self.score_provider(p, &task_type)))
             .collect();
-        
+
         scored.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         Ok(scored.into_iter().take(count).map(|(p, _)| p).collect())
     }
 
@@ -92,9 +92,7 @@ impl ProviderRouter {
 
     /// Check if a provider is healthy.
     pub fn is_healthy(&self, provider: Provider) -> bool {
-        self.health
-            .get(&provider)
-            .map_or(true, |h| h.is_healthy())
+        self.health.get(&provider).is_none_or(|h| h.is_healthy())
     }
 
     /// Score a provider for a given task type.
@@ -263,11 +261,11 @@ impl ProviderHealth {
     pub fn record_success(&mut self, latency: Duration) {
         self.last_success = Some(Instant::now());
         self.consecutive_failures = 0;
-        
+
         // Update average latency with exponential moving average
         self.avg_latency = Some(match self.avg_latency {
             Some(avg) => Duration::from_millis(
-                (avg.as_millis() as f64 * 0.9 + latency.as_millis() as f64 * 0.1) as u64
+                (avg.as_millis() as f64 * 0.9 + latency.as_millis() as f64 * 0.1) as u64,
             ),
             None => latency,
         });
@@ -315,7 +313,7 @@ mod tests {
     #[test]
     fn test_router_select_best() {
         let router = ProviderRouter::new();
-        
+
         // Should work for general tasks
         let result = router.select_best(TaskType::General);
         assert!(result.is_ok());
@@ -324,7 +322,7 @@ mod tests {
     #[test]
     fn test_router_search_preference() {
         let router = ProviderRouter::new();
-        
+
         let selected = router.select_best(TaskType::Search).unwrap();
         // Should prefer search-capable providers
         assert!(Provider::search_providers().contains(&selected));
