@@ -29,8 +29,8 @@ async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     // Initialize logging - output to stderr to avoid interfering with MCP protocol
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(&args.log_level));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&args.log_level));
 
     if args.json_logs {
         fmt()

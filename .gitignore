@@ -1,21 +1,20 @@
-target/
-Cargo.lock
-
-# Local secrets / environment
-.env
-.env.*
-*.pem
-*.key
 
 # Browser automation session/profile state (webpuppet) -- never commit auth state
-.webpuppet/
-*.session.json
-cookies*.json
-user-data-dir/
-chrome-profile/
-*profile*/
-
 # Editor / OS
-.vscode/
-.idea/
+# Local secrets / environment
+*.key
+*.pem
+*.session.json
+*profile*/
 .DS_Store
+.env
+.env.*
+.idea/
+.venv-check/
+.vscode/
+.webpuppet/
+Cargo.lock
+chrome-profile/
+cookies*.json
+target/
+user-data-dir/
