@@ -15,15 +15,22 @@ All notable changes to `embeddenator-agent-mcp` are documented here. Format foll
   `transport-io` `(stdin, stdout)` transport. Features enabled: `server`, `transport-io`, `macros`
   (OAuth/`auth` + `reqwest`/HTTP stay off — this server is stdio-only). The orchestration business
   logic (`orchestrator.rs`, `router.rs`, `workflow.rs`) and the seven tools' behavior are unchanged.
-- The public tool surface is byte-for-byte the same (same 7 tool names, same rendered output);
-  only the MCP transport/wiring changed.
+- The public tool surface is unchanged in the ways that matter: same 7 tool names, same tool
+  behavior, same rendered output. **Caveat:** the tool *input JSON Schemas* are now derived by
+  `schemars` from the Rust arg structs, so their shape may differ from the hand-written originals —
+  notably the `provider` field no longer carries a client-side `enum` constraint (valid values are
+  documented in the field description, and unknown providers are still rejected server-side, never
+  silently). MCP hosts that rendered a provider dropdown from the old schema will now see a free
+  string.
 
 ### Removed
 
 - `src/protocol.rs` (hand-written MCP types — now from `rmcp::model`).
 - `AgentMcpServer` / `McpRequest` / `McpResponse` public items (replaced by `AgentMcp` + `serve_stdio`).
-- The unused `http`/`stdio` cargo features and the `axum`/`tower`/`tower-http` dependencies (the
-  server is stdio-only; `rmcp` owns the transport).
+- Dead dependencies dropped along with the hand-rolled shell they served: `async-trait` and
+  `futures` (both only used by the now-removed `Tool` trait), and the unused `http`/`stdio` cargo
+  features with their `axum`/`tower`/`tower-http` dependencies (the server is stdio-only; `rmcp`
+  owns the transport).
 
 ### Added
 

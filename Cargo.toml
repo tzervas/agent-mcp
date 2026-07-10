@@ -37,8 +37,6 @@ embeddenator-webpuppet = { git = "https://github.com/tzervas/webpuppet-rs", rev 
 
 # Async runtime
 tokio = { version = "1.35", features = ["full", "sync", "time"] }
-futures = "0.3"
-async-trait = "0.1"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -66,6 +64,6 @@ path = "src/main.rs"
 [dev-dependencies]
 tokio-test = "0.4"
 # Client half of rmcp, so the integration/e2e tests can drive the server over a
-# real MCP handshake (in-memory duplex + spawned-stdio child).
+# real MCP handshake (in-memory duplex + spawned-stdio child). `tokio` (with
+# `full`) already comes from [dependencies], so it is not repeated here.
 rmcp = { version = "0.8", features = ["client", "server", "transport-io", "transport-child-process", "macros"] }
-tokio = { version = "1.35", features = ["full"] }

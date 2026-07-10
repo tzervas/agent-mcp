@@ -63,8 +63,9 @@ pub enum Error {
 
 /// Map a domain [`Error`] onto an MCP JSON-RPC error (`rmcp::ErrorData`).
 ///
-/// Never-silent (G2): bad-input variants surface as `invalid_params`; everything
-/// else is an `internal_error`. The message is always carried through verbatim.
+/// Never-silent (G2): bad input surfaces as `invalid_params`, a missing/unavailable
+/// provider as `invalid_request`, and everything else as `internal_error`. The
+/// message is always carried through verbatim.
 impl From<Error> for rmcp::ErrorData {
     fn from(e: Error) -> Self {
         match &e {
