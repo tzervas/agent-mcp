@@ -224,3 +224,5 @@ MIT
 
 - [Assessment & gaps](docs/ASSESSMENT.md)
 - [Product roadmap & API plans](docs/ROADMAP.md)
+## Semver 2026-07-10
+v0.1.0 agent-mcp (supportive mcp tooling/helper from mycelium read-only extract).
