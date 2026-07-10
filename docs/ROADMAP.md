@@ -109,3 +109,15 @@ Consensus: `{ "aggregate": "...", "strategy": "judge", "members": [ ... ] }`
 - Replacing cabal’s primary agent loop  
 - Silent browser automation as default  
 - Fake consensus scores  
+
+## Semver + Releases (appended 2026-07-09)
+
+Semver baseline established (plan.md, Tero-first "version|release", git baseline).
+
+- Current declared: v0.1.0-alpha.1 (tag exists; chore/semver-baseline-v0.1.0; no bump to 0.2.0 as activity limited to hygiene/docs per plan).
+- Release process: local cargo build, GPG -S commits + -s tags, gh release (local only). 
+- Local podman build/push to ghcr (no GH Actions credits) for containers (none/Dockerfile present yet).
+- See README.md##Semver for full details + cites (plan.md, tero.sh agent-mcp, current-status.md).
+- 0.2.0 target per Wave D / PR plan item 7 (schema freeze).
+
+Cites: plan.md, /root/git/scripts/tero.sh, agent-mcp/README post-append, current-status.md.

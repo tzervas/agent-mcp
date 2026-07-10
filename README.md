@@ -216,6 +216,21 @@ None of this is hidden in the code (see the inline comments in `src/orchestrator
 previously called out here. Treat the feature list above as the intended design; this section is the
 honest status.
 
+## Semver + Releases (appended 2026-07-09)
+
+Semver baseline established writ large (per plan.md, user directive, Tero-first scoped survey via `/root/git/scripts/tero.sh agent-mcp text_search "version"` (refusal; no "version" term hits) and "release").
+
+- Declared: 0.1.0-alpha.1 (pre-existing annotated tag `v0.1.0-alpha.1` from initial split).
+- Branch: `chore/semver-baseline-v0.1.0` (no v0.2.0 bump; recent activity = docs/tero/hygiene only per plan.md and current-status; 0.2.0 reserved in ROADMAP D3 / PR plan item 7 for schema freeze + stable MCP).
+- Process (local, no GH Actions): `cargo build --release --all-features`, GPG-signed commit (`-S`), annotated/signed tag (`git tag -s`), `gh release create` (attach build artifacts if produced), push branch + tag.
+- Local podman build/push to ghcr.io/tzervas/... (for any future container dist images; avoids Actions credits entirely). Current: no Dockerfile (depends on embeddenator-webpuppet via git rev); release is cargo bin only.
+- Future: bumps per semver, with full hygiene (`scripts/check.sh`), cargo check/build, append-only updates to README/ROADMAP + tero, cites to plan.md.
+- Hygiene, checks, build, commit/tag/release executed on this isolated worktree (worktree-guard + branch-guard enforced; exclusively on chore branch).
+
+Cites (Tero + git): plan.md (Local GHCR + semver sections; "user confirmed preference for podman local build/push to ghcr (no Actions credits)"), workspace-private-docs/analyses/current-status.md (semver baselines tranche, agent-mcp noted as alpha with prior tag), agent-mcp git tags/logs (v0.1.0-alpha.1, HEAD on hygiene commits), ROADMAP.md (0.2.0), CONTRIBUTING.md (implied semver/GPG), tero.sh runs.
+
+Append-only discipline. Scoped strictly to agent-mcp. See also docs/ROADMAP.md.
+
 ## License
 
 MIT
