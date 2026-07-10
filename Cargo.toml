@@ -1,7 +1,10 @@
 [package]
 name = "embeddenator-agent-mcp"
-version = "0.1.0-alpha.1"
+version = "0.2.0"
 edition = "2021"
+# rmcp 0.8.5 is edition-2024, so the transitive floor is rustc >= 1.85 (edition 2024
+# stabilized in 1.85). This crate stays edition 2021; the pin records the new MSRV.
+rust-version = "1.85"
 authors = ["Tyler Zervas <tz-dev@vectorweight.com>"]
 description = "Multi-agent orchestration MCP server for VS Code/GitHub Copilot"
 license = "MIT"
@@ -10,11 +13,7 @@ keywords = ["mcp", "multi-agent", "orchestration", "copilot", "vscode"]
 categories = ["development-tools", "asynchronous"]
 
 [features]
-default = ["stdio", "web-providers"]
-
-# Transport
-stdio = []
-http = ["dep:axum", "dep:tower", "dep:tower-http"]
+default = ["web-providers"]
 
 # Provider groups
 web-providers = ["embeddenator-webpuppet/all-providers"]
@@ -26,13 +25,18 @@ mcp-client = []     # Act as MCP client to call other MCP servers
 google-adk = []     # Future: Google Agent Development Kit
 
 [dependencies]
+# Official MCP Rust SDK — server shell (framing, dispatch, tools/list schema derivation).
+# stdio-only: `transport-io` gives the (stdin, stdout) transport. OAuth/`auth` + `reqwest`
+# stay OFF (not needed for a scoped stdio server).
+rmcp = { version = "0.8", features = ["server", "transport-io", "macros"] }
+# JSON Schema derivation for tool input structs (version aligned with rmcp's schemars).
+schemars = "1.0"
+
 # Webpuppet for browser automation
 embeddenator-webpuppet = { git = "https://github.com/tzervas/webpuppet-rs", rev = "bff694c", package = "webpuppet" }
 
 # Async runtime
 tokio = { version = "1.35", features = ["full", "sync", "time"] }
-futures = "0.3"
-async-trait = "0.1"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -40,11 +44,6 @@ serde_json = "1.0"
 
 # CLI
 clap = { version = "4.4", features = ["derive"] }
-
-# HTTP server (optional)
-axum = { version = "0.7", optional = true }
-tower = { version = "0.4", optional = true }
-tower-http = { version = "0.5", features = ["cors", "trace"], optional = true }
 
 # Error handling
 thiserror = "1.0"
@@ -64,3 +63,7 @@ path = "src/main.rs"
 
 [dev-dependencies]
 tokio-test = "0.4"
+# Client half of rmcp, so the integration/e2e tests can drive the server over a
+# real MCP handshake (in-memory duplex + spawned-stdio child). `tokio` (with
+# `full`) already comes from [dependencies], so it is not repeated here.
+rmcp = { version = "0.8", features = ["client", "server", "transport-io", "transport-child-process", "macros"] }
