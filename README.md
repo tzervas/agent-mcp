@@ -11,9 +11,11 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 - **Consensus Gathering**: Collect multiple providers' responses to the same question
 - **Workflow Management**: Define multi-step automation workflows, including a human-review step
 
-> **Alpha status (v0.1.0-alpha).** This project works but is early. Several items above are
-> simpler today than they may sound — see [Current Limitations](#current-limitations-alpha)
-> before relying on this in a workflow.
+> **Status (v0.2.0).** The MCP protocol shell is now built on the official
+> [`rmcp`](https://crates.io/crates/rmcp) Rust SDK (server + stdio transport); the orchestration
+> logic is unchanged. This project works but is early — several items above are simpler today than
+> they may sound — see [Current Limitations](#current-limitations) before relying on this in a
+> workflow.
 
 ## Architecture
 
@@ -21,7 +23,7 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 ┌─────────────────────────────────────────────────────────────────┐
 │                    VS Code / GitHub Copilot                      │
 └───────────────────────────┬─────────────────────────────────────┘
-                            │ MCP Protocol (JSON-RPC over stdio)
+                            │ MCP Protocol (rmcp SDK — JSON-RPC over stdio)
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   embeddenator-agent-mcp                         │
@@ -189,9 +191,9 @@ Options:
   -V, --version     Print version
 ```
 
-## Current Limitations (alpha)
+## Current Limitations
 
-This is a `0.1.0-alpha` project — functional, but with real gaps behind a few README/architecture
+This is an early `0.2.x` project — functional, but with real gaps behind a few README/architecture
 claims that describe target design rather than shipped behavior:
 
 - **Web-based providers only, today.** All prompting goes through `embeddenator-webpuppet` browser

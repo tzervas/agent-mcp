@@ -4,7 +4,7 @@ use clap::Parser;
 use tracing::info;
 use tracing_subscriber::{fmt, EnvFilter};
 
-use embeddenator_agent_mcp::{AgentMcpServer, AgentOrchestrator};
+use embeddenator_agent_mcp::{serve_stdio, AgentOrchestrator};
 
 /// Agent MCP Server - Multi-agent orchestration for AI providers.
 #[derive(Parser, Debug)]
@@ -55,9 +55,8 @@ async fn main() -> anyhow::Result<()> {
     };
     let orchestrator = AgentOrchestrator::with_config(config);
 
-    // Create and run server
-    let mut server = AgentMcpServer::new(orchestrator);
-    server.run_stdio().await?;
+    // Serve the MCP protocol over stdio (rmcp owns framing + handshake + routing).
+    serve_stdio(orchestrator).await?;
 
     Ok(())
 }

@@ -8,10 +8,11 @@
 //!   human-review step
 //! - Sub-agent delegation to webpuppet for web-based AI interactions
 //!
-//! This is a `0.1.0-alpha` crate — see the "Current Limitations (alpha)" section of the repo
-//! README for what's still a placeholder or not yet implemented (e.g. "parallel"/"consensus"
-//! tools run sequentially against one browser session today; there is no content-screening or
-//! rate-limiting module yet).
+//! The MCP shell is built on the official [`rmcp`] SDK (server + stdio transport); the
+//! orchestration logic ([`orchestrator`], [`router`], [`workflow`]) is transport-agnostic.
+//! See the "Current Limitations" section of the repo README for what's still a placeholder or
+//! not yet implemented (e.g. "parallel"/"consensus" tools run sequentially against one browser
+//! session today; there is no content-screening or rate-limiting module yet).
 //!
 //! # Architecture
 //!
@@ -54,7 +55,6 @@
 
 pub mod error;
 pub mod orchestrator;
-pub mod protocol;
 pub mod router;
 pub mod server;
 pub mod tools;
@@ -62,7 +62,6 @@ pub mod workflow;
 
 pub use error::{Error, Result};
 pub use orchestrator::AgentOrchestrator;
-pub use protocol::{McpRequest, McpResponse};
 pub use router::ProviderRouter;
-pub use server::AgentMcpServer;
+pub use server::{serve_stdio, AgentMcp};
 pub use workflow::{Workflow, WorkflowState, WorkflowStep};
