@@ -30,6 +30,16 @@ jobs:
       - name: Build release
         run: cargo build --release --all-features
 
+      - name: Checksum release binary
+        # Publish channel is GitHub Releases only (single channel — not crates.io,
+        # not a container registry): the release asset is this binary plus its
+        # sha256, so a downloader can verify integrity without trusting the
+        # registry transport.
+        run: |
+          cd target/release
+          sha256sum agent-mcp > agent-mcp.sha256
+          cd -
+
       - name: Create GitHub Release
         if: ${{ inputs.tag != '' }}
         uses: softprops/action-gh-release@v2
@@ -37,5 +47,8 @@ jobs:
           tag_name: ${{ inputs.tag }}
           generate_release_notes: true
           draft: true
+          files: |
+            target/release/agent-mcp
+            target/release/agent-mcp.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

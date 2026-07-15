@@ -96,6 +96,18 @@ cargo build -p embeddenator-agent-mcp --release
 > workspace). A standalone clone of just this repository will not build out of the box — this is a
 > known alpha-stage limitation, not a bug in this crate's own code.
 
+### Docker (optional, service use only)
+
+A `Dockerfile` is included for running `agent-mcp` as a standalone service (e.g. behind a
+process manager, or wherever a containerized MCP stdio server is convenient). It is **not**
+the publish path for this project — see [Releases](#releases) below — just a convenience for
+anyone who wants a containerized runtime:
+
+```bash
+docker build -t agent-mcp .
+docker run -i agent-mcp --visible
+```
+
 ### VS Code Integration
 
 Add to your VS Code `mcp.json`:
@@ -217,6 +229,19 @@ claims that describe target design rather than shipped behavior:
 None of this is hidden in the code (see the inline comments in `src/orchestrator.rs`), but it wasn't
 previously called out here. Treat the feature list above as the intended design; this section is the
 honest status.
+
+## Releases
+
+Published releases are the single channel: [GitHub Releases](https://github.com/tzervas/agent-mcp/releases)
+against an annotated `vX.Y.Z` tag. Each release carries the built `agent-mcp` binary
+(`cargo build --release`) plus a `agent-mcp.sha256` checksum as downloadable assets — verify
+the download with `sha256sum -c agent-mcp.sha256` before trusting it. There is no crates.io
+crate and no published container image for this project; the `Dockerfile` above is optional
+and for local/service use only, not a publish target.
+
+Releases are cut manually via the repo's `Release` GitHub Actions workflow
+(`workflow_dispatch`, see `.github/workflows/release.yml`) — no release is auto-created on tag
+push.
 
 ## License
 
