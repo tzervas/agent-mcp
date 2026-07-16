@@ -7,10 +7,15 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 `embeddenator-agent-mcp` provides a Model Context Protocol (MCP) server for orchestrating prompts across multiple AI providers. It enables:
 
 - **Intelligent Provider Routing**: Automatically select the best provider based on task type
-- **Parallel Execution**: Query multiple providers simultaneously  
-- **Consensus Building**: Get agreement from multiple AI providers
-- **Workflow Management**: Define multi-step automation workflows
-- **Security**: Content screening and rate limiting built-in
+- **Multi-Provider Querying**: Send the same prompt to multiple providers and collect their responses
+- **Consensus Gathering**: Collect multiple providers' responses to the same question
+- **Workflow Management**: Define multi-step automation workflows, including a human-review step
+
+> **Status (v0.2.0).** The MCP protocol shell is now built on the official
+> [`rmcp`](https://crates.io/crates/rmcp) Rust SDK (server + stdio transport); the orchestration
+> logic is unchanged. This project works but is early — several items above are simpler today than
+> they may sound — see [Current Limitations](#current-limitations) before relying on this in a
+> workflow.
 
 ## Architecture
 
@@ -18,14 +23,14 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 ┌─────────────────────────────────────────────────────────────────┐
 │                    VS Code / GitHub Copilot                      │
 └───────────────────────────┬─────────────────────────────────────┘
-                            │ MCP Protocol (JSON-RPC over stdio)
+                            │ MCP Protocol (rmcp SDK — JSON-RPC over stdio)
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   embeddenator-agent-mcp                         │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐   │
-│  │ Workflow   │ │ Provider   │ │ Security   │ │ Session    │   │
-│  │ Manager    │ │ Router     │ │ Guard      │ │ Manager    │   │
-│  └────────────┘ └────────────┘ └────────────┘ └────────────┘   │
+│              ┌────────────┐ ┌────────────┐                       │
+│              │ Workflow   │ │ Provider   │                       │
+│              │ Manager    │ │ Router     │                       │
+│              └────────────┘ └────────────┘                       │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
         ┌───────────────────┼───────────────────┐
@@ -63,7 +68,6 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 | Grok (X/xAI) | `grok` | Real-time info, X integration |
 | Perplexity AI | `perplexity` | Search-focused, sources cited |
 | NotebookLM | `notebooklm` | 500k context, research assistant |
-| Kaggle (Datasets) | `kaggle` | Dataset search/catalog (links + metadata) |
 
 ### API-based (planned)
 
@@ -85,6 +89,12 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 ```bash
 cargo build -p embeddenator-agent-mcp --release
 ```
+
+> **Build prerequisite:** this crate depends on `embeddenator-webpuppet` via a relative path
+> (`../embeddenator-webpuppet` in `Cargo.toml`), not a published/vendored crate. To build, you need
+> that sibling checked out next to this repo (e.g. as part of the author's local multi-repo
+> workspace). A standalone clone of just this repository will not build out of the box — this is a
+> known alpha-stage limitation, not a bug in this crate's own code.
 
 ### VS Code Integration
 
@@ -181,6 +191,40 @@ Options:
   -V, --version     Print version
 ```
 
+## Current Limitations
+
+This is an early `0.2.x` project — functional, but with real gaps behind a few README/architecture
+claims that describe target design rather than shipped behavior:
+
+- **Web-based providers only, today.** All prompting goes through `embeddenator-webpuppet` browser
+  automation. API-based providers (OpenAI/Anthropic/Google) and self-hosted backends
+  (Ollama/vLLM/LocalAI) are listed above as "planned" — there is no code path for them yet.
+- **"Parallel" prompting is sequential.** `agent_parallel_prompt` and `agent_consensus` drive one
+  browser session at a time (`AgentOrchestrator::parallel_prompt` in `src/orchestrator.rs`), because
+  the current backend is browser automation. True concurrent querying is future work, most likely
+  once API-based providers land.
+- **Consensus is a placeholder heuristic.** `agent_consensus` does not compute semantic agreement — it
+  returns the longest of the collected responses as the "consensus," and the reported
+  `agreement_score` is a hardcoded `0.5`, not a measured value (`AgentOrchestrator::find_consensus`).
+- **Human-in-the-loop workflow steps don't resume.** A `review`/`human_review` workflow step pauses
+  the workflow (`WorkflowState::Paused`) and returns an error; there is currently no API to submit a
+  human response and resume the workflow. Treat this step type as not-yet-functional.
+- **No content screening or rate limiting is implemented.** There is no security/content-filtering
+  module and no request-rate-limiting logic in this crate today.
+- **Build requires a local sibling checkout** of `embeddenator-webpuppet` (see
+  [Installation](#building-from-source)) — this repo alone is not buildable as published.
+
+None of this is hidden in the code (see the inline comments in `src/orchestrator.rs`), but it wasn't
+previously called out here. Treat the feature list above as the intended design; this section is the
+honest status.
+
 ## License
 
 MIT
+
+## Status & roadmap
+
+- [Assessment & gaps](docs/ASSESSMENT.md)
+- [Product roadmap & API plans](docs/ROADMAP.md)
+## Semver 2026-07-10
+v0.1.0 agent-mcp (supportive mcp tooling/helper from mycelium read-only extract).

@@ -1,0 +1,546 @@
+{
+  "generated": "Empirical/Declared — lite heading/line heuristic over markdown in agent-mcp via tero-mcp/scripts/generate_lite_index.py; source files are ground truth. Generated 2026-07-09.",
+  "item_tag": "Empirical/Declared",
+  "siblings": [],
+  "items": [
+    {
+      "anchor": "contributing",
+      "family": "doc",
+      "kind": "section",
+      "title": "Contributing to This Project",
+      "file": "CONTRIBUTING.md",
+      "line": 1,
+      "tag": "Empirical/Declared",
+      "summary": "Thank you for your interest in contributing!"
+    },
+    {
+      "anchor": "contributing--development-setup",
+      "family": "doc",
+      "kind": "section",
+      "title": "Development Setup",
+      "file": "CONTRIBUTING.md",
+      "line": 5,
+      "tag": "Empirical/Declared",
+      "summary": "1. Clone the repository"
+    },
+    {
+      "anchor": "contributing--pull-request-process",
+      "family": "doc",
+      "kind": "section",
+      "title": "Pull Request Process",
+      "file": "CONTRIBUTING.md",
+      "line": 12,
+      "tag": "Empirical/Declared",
+      "summary": "1. Fork the repository"
+    },
+    {
+      "anchor": "contributing--code-style",
+      "family": "doc",
+      "kind": "section",
+      "title": "Code Style",
+      "file": "CONTRIBUTING.md",
+      "line": 20,
+      "tag": "Empirical/Declared",
+      "summary": "- Use cargo fmt for formatting"
+    },
+    {
+      "anchor": "contributing--license",
+      "family": "doc",
+      "kind": "section",
+      "title": "License",
+      "file": "CONTRIBUTING.md",
+      "line": 27,
+      "tag": "Empirical/Declared",
+      "summary": "By contributing, you agree that your contributions will be licensed under the MIT License."
+    },
+    {
+      "anchor": "readme",
+      "family": "doc",
+      "kind": "other",
+      "title": "embeddenator-agent-mcp",
+      "file": "README.md",
+      "line": 1,
+      "tag": "Empirical/Declared",
+      "summary": "Multi-agent orchestration MCP server for VS Code and GitHub Copilot."
+    },
+    {
+      "anchor": "readme--overview",
+      "family": "doc",
+      "kind": "section",
+      "title": "Overview",
+      "file": "README.md",
+      "line": 5,
+      "tag": "Empirical/Declared",
+      "summary": "embeddenator-agent-mcp provides a Model Context Protocol (MCP) server for orchestrating prompts across multiple AI providers. It enables:"
+    },
+    {
+      "anchor": "readme--architecture",
+      "family": "doc",
+      "kind": "section",
+      "title": "Architecture",
+      "file": "README.md",
+      "line": 18,
+      "tag": "Empirical/Declared",
+      "summary": "┌─────────────────────────────────────────────────────────────────┐"
+    },
+    {
+      "anchor": "readme--mcp-tools",
+      "family": "doc",
+      "kind": "section",
+      "title": "MCP Tools",
+      "file": "README.md",
+      "line": 45,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "readme--supported-providers",
+      "family": "doc",
+      "kind": "section",
+      "title": "Supported Providers",
+      "file": "README.md",
+      "line": 57,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "readme--web-based-via-webpuppet",
+      "family": "doc",
+      "kind": "section",
+      "title": "Web-based (via webpuppet)",
+      "file": "README.md",
+      "line": 59,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "readme--api-based-planned",
+      "family": "doc",
+      "kind": "section",
+      "title": "API-based (planned)",
+      "file": "README.md",
+      "line": 70,
+      "tag": "Empirical/Declared",
+      "summary": "- OpenAI API"
+    },
+    {
+      "anchor": "readme--self-hosted-planned",
+      "family": "doc",
+      "kind": "section",
+      "title": "Self-hosted (planned)",
+      "file": "README.md",
+      "line": 76,
+      "tag": "Empirical/Declared",
+      "summary": "- Ollama"
+    },
+    {
+      "anchor": "readme--installation",
+      "family": "doc",
+      "kind": "section",
+      "title": "Installation",
+      "file": "README.md",
+      "line": 83,
+      "tag": "Empirical/Declared",
+      "summary": "cargo build -p embeddenator-agent-mcp --release"
+    },
+    {
+      "anchor": "readme--building-from-source",
+      "family": "doc",
+      "kind": "section",
+      "title": "Building from Source",
+      "file": "README.md",
+      "line": 85,
+      "tag": "Empirical/Declared",
+      "summary": "cargo build -p embeddenator-agent-mcp --release"
+    },
+    {
+      "anchor": "readme--vs-code-integration",
+      "family": "doc",
+      "kind": "section",
+      "title": "VS Code Integration",
+      "file": "README.md",
+      "line": 97,
+      "tag": "Empirical/Declared",
+      "summary": "Add to your VS Code mcp.json:"
+    },
+    {
+      "anchor": "readme--usage",
+      "family": "doc",
+      "kind": "section",
+      "title": "Usage",
+      "file": "README.md",
+      "line": 112,
+      "tag": "Empirical/Declared",
+      "summary": "{"
+    },
+    {
+      "anchor": "readme--basic-prompt",
+      "family": "doc",
+      "kind": "section",
+      "title": "Basic Prompt",
+      "file": "README.md",
+      "line": 114,
+      "tag": "Empirical/Declared",
+      "summary": "{"
+    },
+    {
+      "anchor": "readme--parallel-prompt",
+      "family": "doc",
+      "kind": "section",
+      "title": "Parallel Prompt",
+      "file": "README.md",
+      "line": 125,
+      "tag": "Empirical/Declared",
+      "summary": "{"
+    },
+    {
+      "anchor": "readme--consensus",
+      "family": "doc",
+      "kind": "section",
+      "title": "Consensus",
+      "file": "README.md",
+      "line": 137,
+      "tag": "Empirical/Declared",
+      "summary": "{"
+    },
+    {
+      "anchor": "readme--workflow",
+      "family": "doc",
+      "kind": "section",
+      "title": "Workflow",
+      "file": "README.md",
+      "line": 149,
+      "tag": "Empirical/Declared",
+      "summary": "{"
+    },
+    {
+      "anchor": "readme--cli-options",
+      "family": "doc",
+      "kind": "section",
+      "title": "CLI Options",
+      "file": "README.md",
+      "line": 179,
+      "tag": "Empirical/Declared",
+      "summary": "agent-mcp [OPTIONS]"
+    },
+    {
+      "anchor": "readme--current-limitations-alpha",
+      "family": "doc",
+      "kind": "section",
+      "title": "Current Limitations (alpha)",
+      "file": "README.md",
+      "line": 192,
+      "tag": "Empirical/Declared",
+      "summary": "This is a 0.1.0-alpha project — functional, but with real gaps behind a few README/architecture"
+    },
+    {
+      "anchor": "readme--license",
+      "family": "doc",
+      "kind": "section",
+      "title": "License",
+      "file": "README.md",
+      "line": 219,
+      "tag": "Empirical/Declared",
+      "summary": "MIT"
+    },
+    {
+      "anchor": "readme--status-roadmap",
+      "family": "doc",
+      "kind": "section",
+      "title": "Status & roadmap",
+      "file": "README.md",
+      "line": 223,
+      "tag": "Empirical/Declared",
+      "summary": "- [Assessment & gaps](docs/ASSESSMENT.md)"
+    },
+    {
+      "anchor": "assessment",
+      "family": "doc",
+      "kind": "note",
+      "title": "agent-mcp — Assessment & Gap Analysis",
+      "file": "docs/ASSESSMENT.md",
+      "line": 1,
+      "tag": "Empirical/Declared",
+      "summary": "Date: 2026-07-08"
+    },
+    {
+      "anchor": "assessment--1.-what-it-is-today",
+      "family": "doc",
+      "kind": "section",
+      "title": "1. What it is today",
+      "file": "docs/ASSESSMENT.md",
+      "line": 10,
+      "tag": "Empirical/Declared",
+      "summary": "- MCP tools for multi-provider prompting and simple workflows"
+    },
+    {
+      "anchor": "assessment--2.-maturity-2-5",
+      "family": "doc",
+      "kind": "section",
+      "title": "2. Maturity: **2 / 5**",
+      "file": "docs/ASSESSMENT.md",
+      "line": 18,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "assessment--3.-branches",
+      "family": "doc",
+      "kind": "section",
+      "title": "3. Branches",
+      "file": "docs/ASSESSMENT.md",
+      "line": 30,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "assessment--4.-gaps",
+      "family": "doc",
+      "kind": "section",
+      "title": "4. Gaps",
+      "file": "docs/ASSESSMENT.md",
+      "line": 40,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "assessment--5.-integration-recommendation",
+      "family": "doc",
+      "kind": "section",
+      "title": "5. Integration recommendation",
+      "file": "docs/ASSESSMENT.md",
+      "line": 53,
+      "tag": "Empirical/Declared",
+      "summary": "See [ROADMAP.md](ROADMAP.md)."
+    },
+    {
+      "anchor": "assessment--tero-index",
+      "family": "doc",
+      "kind": "section",
+      "title": "Tero index",
+      "file": "docs/ASSESSMENT.md",
+      "line": 63,
+      "tag": "Empirical/Declared",
+      "summary": "Layer-1 citation index: [docs/tero-index/](tero-index/) (index.json, INDEX.md, MANIFEST.toml)."
+    },
+    {
+      "anchor": "localchecks",
+      "family": "doc",
+      "kind": "section",
+      "title": "Local checks (CI parity)",
+      "file": "docs/LOCAL_CHECKS.md",
+      "line": 1,
+      "tag": "Empirical/Declared",
+      "summary": "GitHub Actions workflows in this repo are manual only (workflowdispatch)."
+    },
+    {
+      "anchor": "localchecks--run-everything-the-remote-job-would-run",
+      "family": "doc",
+      "kind": "section",
+      "title": "Run everything the remote job would run",
+      "file": "docs/LOCAL_CHECKS.md",
+      "line": 6,
+      "tag": "Empirical/Declared",
+      "summary": "./scripts/check.sh"
+    },
+    {
+      "anchor": "localchecks--tero-index",
+      "family": "doc",
+      "kind": "section",
+      "title": "Tero index",
+      "file": "docs/LOCAL_CHECKS.md",
+      "line": 19,
+      "tag": "Empirical/Declared",
+      "summary": "python3 ../tero-mcp/scripts/generateliteindex.py --root \"$(pwd)\""
+    },
+    {
+      "anchor": "localchecks--from-a-checkout-that-can-see-the-generator-sibling-tero-mcp-recommended",
+      "family": "doc",
+      "kind": "other",
+      "title": "from a checkout that can see the generator (sibling tero-mcp recommended):",
+      "file": "docs/LOCAL_CHECKS.md",
+      "line": 22,
+      "tag": "Empirical/Declared",
+      "summary": "python3 ../tero-mcp/scripts/generateliteindex.py --root \"$(pwd)\""
+    },
+    {
+      "anchor": "localchecks--or",
+      "family": "doc",
+      "kind": "other",
+      "title": "or:",
+      "file": "docs/LOCAL_CHECKS.md",
+      "line": 24,
+      "tag": "Empirical/Declared",
+      "summary": "python3 scripts/generateteroindex.sh   # if present as a thin wrapper"
+    },
+    {
+      "anchor": "localchecks--remote-optional",
+      "family": "doc",
+      "kind": "section",
+      "title": "Remote (optional)",
+      "file": "docs/LOCAL_CHECKS.md",
+      "line": 30,
+      "tag": "Empirical/Declared",
+      "summary": "In GitHub: Actions → CI → Run workflow."
+    },
+    {
+      "anchor": "roadmap",
+      "family": "doc",
+      "kind": "note",
+      "title": "agent-mcp — Product Roadmap",
+      "file": "docs/ROADMAP.md",
+      "line": 1,
+      "tag": "Empirical/Declared",
+      "status": "Living (2026-07-08)",
+      "summary": "Status: Living (2026-07-08)"
+    },
+    {
+      "anchor": "roadmap--waves",
+      "family": "doc",
+      "kind": "section",
+      "title": "Waves",
+      "file": "docs/ROADMAP.md",
+      "line": 10,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "roadmap--wave-a-honesty-alpha",
+      "family": "doc",
+      "kind": "section",
+      "title": "Wave A — Honesty alpha",
+      "file": "docs/ROADMAP.md",
+      "line": 12,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "roadmap--wave-b-api-providers-primary-path",
+      "family": "doc",
+      "kind": "section",
+      "title": "Wave B — API providers (primary path)",
+      "file": "docs/ROADMAP.md",
+      "line": 21,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "roadmap--wave-c-real-orchestration",
+      "family": "doc",
+      "kind": "section",
+      "title": "Wave C — Real orchestration",
+      "file": "docs/ROADMAP.md",
+      "line": 30,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "roadmap--wave-d-ecosystem",
+      "family": "doc",
+      "kind": "section",
+      "title": "Wave D — Ecosystem",
+      "file": "docs/ROADMAP.md",
+      "line": 39,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "roadmap--api-plan",
+      "family": "doc",
+      "kind": "section",
+      "title": "API plan",
+      "file": "docs/ROADMAP.md",
+      "line": 49,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "roadmap--mcp-tools-target-stable-set",
+      "family": "doc",
+      "kind": "section",
+      "title": "MCP tools (target stable set)",
+      "file": "docs/ROADMAP.md",
+      "line": 51,
+      "tag": "Empirical/Declared"
+    },
+    {
+      "anchor": "roadmap--provider-config-env-file-not-mcp-secrets",
+      "family": "doc",
+      "kind": "section",
+      "title": "Provider config (env / file — not MCP secrets)",
+      "file": "docs/ROADMAP.md",
+      "line": 61,
+      "tag": "Empirical/Declared",
+      "summary": "[[providers]]"
+    },
+    {
+      "anchor": "roadmap--example-agent-mcp.toml",
+      "family": "doc",
+      "kind": "other",
+      "title": "example agent-mcp.toml",
+      "file": "docs/ROADMAP.md",
+      "line": 64,
+      "tag": "Empirical/Declared",
+      "summary": "[[providers]]"
+    },
+    {
+      "anchor": "roadmap--response-envelope",
+      "family": "doc",
+      "kind": "section",
+      "title": "Response envelope",
+      "file": "docs/ROADMAP.md",
+      "line": 78,
+      "tag": "Empirical/Declared",
+      "summary": "{"
+    },
+    {
+      "anchor": "roadmap--pr-plan",
+      "family": "doc",
+      "kind": "section",
+      "title": "PR plan",
+      "file": "docs/ROADMAP.md",
+      "line": 95,
+      "tag": "Empirical/Declared",
+      "summary": "1. Docs assessment + roadmap"
+    },
+    {
+      "anchor": "roadmap--non-goals",
+      "family": "doc",
+      "kind": "section",
+      "title": "Non-goals",
+      "file": "docs/ROADMAP.md",
+      "line": 107,
+      "tag": "Empirical/Declared",
+      "summary": "- Replacing cabal’s primary agent loop"
+    },
+    {
+      "anchor": "readme-2",
+      "family": "doc",
+      "kind": "other",
+      "title": "Tero index (Layer 1)",
+      "file": "docs/tero-index/README.md",
+      "line": 1,
+      "tag": "Empirical/Declared",
+      "summary": "Machine + human citation index for this repository."
+    },
+    {
+      "anchor": "readme--regenerate",
+      "family": "doc",
+      "kind": "section",
+      "title": "Regenerate",
+      "file": "docs/tero-index/README.md",
+      "line": 13,
+      "tag": "Empirical/Declared",
+      "summary": "python3 /path/to/tero-mcp/scripts/generateliteindex.py --root $(pwd)"
+    },
+    {
+      "anchor": "readme--or-if-tero-mcp-is-a-sibling",
+      "family": "doc",
+      "kind": "other",
+      "title": "or if tero-mcp is a sibling:",
+      "file": "docs/tero-index/README.md",
+      "line": 17,
+      "tag": "Empirical/Declared",
+      "summary": "python3 ../tero-mcp/scripts/generateliteindex.py --root $(pwd)"
+    },
+    {
+      "anchor": "readme--serve-locally",
+      "family": "doc",
+      "kind": "section",
+      "title": "Serve locally",
+      "file": "docs/tero-index/README.md",
+      "line": 21,
+      "tag": "Empirical/Declared",
+      "summary": "export TEROTOKENS=local-dev:refresh"
+    }
+  ],
+  "flagged": []
+}

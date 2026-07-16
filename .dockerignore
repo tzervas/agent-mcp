@@ -1,0 +1,11 @@
+target/
+.git/
+.github/
+docs/
+tests/
+*.md
+.env
+.env.*
+.webpuppet/
+chrome-profile/
+user-data-dir/
