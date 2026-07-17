@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "agent-mcp": {
+      "type": "stdio",
+      "command": "agent-mcp",
+      "args": []
+    }
+  }
+}
