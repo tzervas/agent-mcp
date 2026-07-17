@@ -7,6 +7,34 @@
 
 Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 
+**Who / what / why:** hosts that speak MCP (Cursor, VS Code Copilot, Claude Desktop) get seven
+`agent_*` tools to route prompts across browser-backed AI providers via
+[webpuppet-rs](https://github.com/tzervas/webpuppet-rs). Compose with
+[agent-harness](https://github.com/tzervas/agent-harness) by reference — see
+[docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+
+## 5-minute path
+
+```bash
+git clone https://github.com/tzervas/agent-mcp.git
+cd agent-mcp
+
+# Requires Rust 1.85+ (MSRV). First build fetches webpuppet-rs over git.
+cargo build
+cargo test --all-features
+
+# MCP over stdio (hosts attach stdin/stdout; logs go to stderr)
+cargo run --
+# or: cargo build --release && ./target/release/agent-mcp
+```
+
+Expected: all tests pass (unit + rmcp integration + stdio e2e); the server waits for JSON-RPC
+with no banner on stdout. Full gate: `./scripts/check.sh`.
+
+Client snippets: [docs/mcp.example.json](docs/mcp.example.json) (Claude Desktop),
+[.mcp.json.example](.mcp.json.example) (Cursor / VS Code). Agent notes: [AGENTS.md](AGENTS.md),
+[CLAUDE.md](CLAUDE.md).
+
 ## Overview
 
 `embeddenator-agent-mcp` provides a Model Context Protocol (MCP) server for orchestrating prompts across multiple AI providers. It enables:
@@ -92,29 +120,38 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 ### Building from Source
 
 ```bash
-cargo build -p embeddenator-agent-mcp --release
+cargo build --release
+# binary: target/release/agent-mcp
 ```
 
-> **Build prerequisite:** this crate depends on `embeddenator-webpuppet` via a relative path
-> (`../embeddenator-webpuppet` in `Cargo.toml`), not a published/vendored crate. To build, you need
-> that sibling checked out next to this repo (e.g. as part of the author's local multi-repo
-> workspace). A standalone clone of just this repository will not build out of the box — this is a
-> known alpha-stage limitation, not a bug in this crate's own code.
+> **Dependency:** `embeddenator-webpuppet` is pulled from
+> [webpuppet-rs](https://github.com/tzervas/webpuppet-rs) as a **git dependency** (pinned `rev` in
+> `Cargo.toml`). A standalone clone builds with network access; no sibling path checkout is required.
+> Browser-backed tools still need a working Chromium/session at call time — the MCP handshake and
+> non-browser tools (`agent_status`, `agent_list_providers`) do not.
 
-### VS Code Integration
+### MCP client config
 
-Add to your VS Code `mcp.json`:
+| Host | Example |
+|------|---------|
+| Cursor / VS Code | [.mcp.json.example](.mcp.json.example) |
+| Claude Desktop | [docs/mcp.example.json](docs/mcp.example.json) |
+
+VS Code / Cursor `mcp.json`:
 
 ```json
 {
   "servers": {
-    "agent": {
-      "command": "/path/to/agent-mcp",
-      "args": ["--visible"]
+    "agent-mcp": {
+      "type": "stdio",
+      "command": "agent-mcp",
+      "args": []
     }
   }
 }
 ```
+
+Use `"args": ["--visible"]` when debugging non-headless browser sessions.
 
 ## Usage
 
@@ -216,12 +253,21 @@ claims that describe target design rather than shipped behavior:
   human response and resume the workflow. Treat this step type as not-yet-functional.
 - **No content screening or rate limiting is implemented.** There is no security/content-filtering
   module and no request-rate-limiting logic in this crate today.
-- **Build requires a local sibling checkout** of `embeddenator-webpuppet` (see
-  [Installation](#building-from-source)) — this repo alone is not buildable as published.
+- **Browser sessions required for prompt tools.** Handshake and catalogue tools work offline; live
+  `agent_prompt` / parallel / consensus need webpuppet + authenticated browser sessions.
+- **Compose, don't vendor.** [agent-harness](https://github.com/tzervas/agent-harness) and
+  [tg-agent-relay](https://github.com/tzervas/tg-agent-relay) consume this MCP by reference —
+  see [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
-None of this is hidden in the code (see the inline comments in `src/orchestrator.rs`), but it wasn't
-previously called out here. Treat the feature list above as the intended design; this section is the
-honest status.
+None of this is hidden in the code (see the inline comments in `src/orchestrator.rs`). Treat the
+feature list above as the intended design; this section is the honest status.
+
+## Local checks
+
+```bash
+./scripts/check.sh
+cargo test --all-features
+```
 
 ## License
 
@@ -231,5 +277,5 @@ MIT
 
 - [Assessment & gaps](docs/ASSESSMENT.md)
 - [Product roadmap & API plans](docs/ROADMAP.md)
-## Semver 2026-07-10
-v0.1.0 agent-mcp (supportive mcp tooling/helper from mycelium read-only extract).
+- [Integrations / harness compose](docs/INTEGRATIONS.md)
+- [AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md)

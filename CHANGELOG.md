@@ -4,6 +4,16 @@ All notable changes to `embeddenator-agent-mcp` are documented here. Format foll
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor = notable change).
 
+## [Unreleased]
+
+### Added
+- Production polish (P28e): `AGENTS.md`, `CLAUDE.md`, 5-minute README path, MCP host examples
+  (`docs/mcp.example.json`, `.mcp.json.example`), and [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)
+  describing compose-by-reference with **agent-harness**, webpuppet-rs, and optional security-mcp.
+
+### Fixed
+- README: document **git** dependency on webpuppet-rs (was incorrectly described as a sibling path dep).
+
 ## [0.2.0] - 2026-07-10
 
 ### Changed
