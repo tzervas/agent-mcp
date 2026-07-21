@@ -6,13 +6,29 @@ All notable changes to `embeddenator-agent-mcp` are documented here. Format foll
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-21
+
 ### Added
 - Production polish (P28e): `AGENTS.md`, `CLAUDE.md`, 5-minute README path, MCP host examples
   (`docs/mcp.example.json`, `.mcp.json.example`), and [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)
   describing compose-by-reference with **agent-harness**, webpuppet-rs, and optional security-mcp.
+- Fleet CI/security badges on the README, and self-hosted-runner catch-up hardening for the fleet
+  gates (P26 standards).
+
+### Changed
+- Fleet policy: issues are now auto-closed only on `main`, not on feature branches.
 
 ### Fixed
 - README: document **git** dependency on webpuppet-rs (was incorrectly described as a sibling path dep).
+- CI: harden fleet gates so self-hosted runner catch-up runs don't produce false-negative failures.
+
+### Deferred
+- Still no live-provider (API-key) integrations — `web-providers` (browser-driven, via
+  webpuppet-rs) remains the only working provider path; `api-providers`/`self-hosted` feature
+  flags are placeholders with no implementation.
+- Consensus gathering across providers is still a placeholder — see
+  [Current Limitations](README.md#current-limitations).
+- Human-in-the-loop workflow resume is still not implemented.
 
 ## [0.2.0] - 2026-07-10
 
