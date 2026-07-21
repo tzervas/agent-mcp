@@ -49,11 +49,12 @@ jobs:
           echo "Detected rust=$rust python=$python"
 
   rust:
-    name: cargo check/test
+    # Name includes "chromium" so dynamic pool auto-sizes xlarge (8c/16g) without a hard
+    # size label that can starve the queue when no labeled worker is warm.
+    name: cargo check/test (chromium)
     needs: detect
     if: needs.detect.outputs.rust == 'true'
-    # xlarge: chromiumoxide_cdp is SIGKILL/OOM on medium/large; pool maps chromium → 8c/16g
-    runs-on: [self-hosted, linux, x64, podman, xlarge]
+    runs-on: [self-hosted, linux, x64, podman]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -74,12 +75,15 @@ jobs:
           set -euo pipefail
           export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
           export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
+          export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
           cargo check --workspace --all-targets
       - name: cargo test
         run: |
           set -euo pipefail
           export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
           export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
+          export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
+          export CARGO_PROFILE_TEST_DEBUG="${CARGO_PROFILE_TEST_DEBUG:-0}"
           cargo test --workspace
 
   python:

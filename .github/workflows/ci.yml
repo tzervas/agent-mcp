@@ -27,9 +27,9 @@ env:
 
 jobs:
   build-and-test:
-    name: Build and Test (local parity)
-    # xlarge: chromiumoxide_cdp compile OOMs on medium/large; needs ~8c/16g
-    runs-on: [self-hosted, linux, x64, podman, xlarge]
+    # "Build and Test" + chromium in name → pool prefers large/xlarge without hard label.
+    name: Build and Test chromium (local parity)
+    runs-on: [self-hosted, linux, x64, podman]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
