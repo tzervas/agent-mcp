@@ -44,7 +44,7 @@ Client snippets: [docs/mcp.example.json](docs/mcp.example.json) (Claude Desktop)
 - **Consensus Gathering**: Collect multiple providers' responses to the same question
 - **Workflow Management**: Define multi-step automation workflows, including a human-review step
 
-> **Status (v0.2.0).** The MCP protocol shell is now built on the official
+> **Status (v0.2.1).** The MCP protocol shell is now built on the official
 > [`rmcp`](https://crates.io/crates/rmcp) Rust SDK (server + stdio transport); the orchestration
 > logic is unchanged. This project works but is early — several items above are simpler today than
 > they may sound — see [Current Limitations](#current-limitations) before relying on this in a
