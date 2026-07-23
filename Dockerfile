@@ -9,7 +9,7 @@
 # browser-free tools) runs without one.
 
 # ---- builder ---------------------------------------------------------------
-# rmcp 0.8.5 is an edition-2024 crate ⇒ rustc >= 1.85 (see Cargo.toml rust-version).
+# rmcp 2.x is an edition-2024 crate ⇒ rustc >= 1.85 (see Cargo.toml rust-version).
 FROM rust:1-slim-bookworm AS builder
 
 # ring/rustls need a C toolchain; webpuppet's git dep is fetched over https.
