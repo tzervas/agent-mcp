@@ -9,7 +9,7 @@
 # browser-free tools) runs without one.
 
 # ---- builder ---------------------------------------------------------------
-# rmcp 0.8.5 is an edition-2024 crate ⇒ rustc >= 1.85 (see Cargo.toml rust-version).
+# rmcp 2.x is an edition-2024 crate ⇒ rustc >= 1.85 (see Cargo.toml rust-version).
 FROM rust:1-slim-bookworm AS builder
 
 # ring/rustls need a C toolchain; webpuppet's git dep is fetched over https.
@@ -20,7 +20,7 @@ RUN apt-get update \
 
 WORKDIR /build
 COPY . .
-RUN cargo build --release
+RUN cargo build --release --locked
 RUN strip target/release/agent-mcp || true
 
 # ---- runtime ---------------------------------------------------------------
@@ -35,6 +35,17 @@ COPY --from=builder /build/target/release/agent-mcp /usr/local/bin/agent-mcp
 
 USER agent
 WORKDIR /home/agent
+
+# No health probe, declared explicitly (trivy DS-0026 / Docker best practice).
+#
+# This is a *stdio* MCP server: it has no listening port and no side-channel to
+# probe. Its liveness is defined entirely by the pipe to the client that spawned
+# it — when the client closes stdin the server exits, by design. A `HEALTHCHECK
+# CMD` could only start a *second* agent-mcp process, which says nothing about
+# the one actually serving the session, and any probe that wrote to stdin/stdout
+# would corrupt the JSON-RPC stream. So the correct value here is NONE, stated
+# rather than omitted.
+HEALTHCHECK NONE
 
 # MCP is spoken over stdio; keep stdout clean (logs go to stderr).
 ENTRYPOINT ["/usr/local/bin/agent-mcp"]
