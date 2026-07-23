@@ -13,7 +13,6 @@
 .venv-check/
 .vscode/
 .webpuppet/
-Cargo.lock
 chrome-profile/
 cookies*.json
 target/

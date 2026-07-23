@@ -20,7 +20,7 @@ RUN apt-get update \
 
 WORKDIR /build
 COPY . .
-RUN cargo build --release
+RUN cargo build --release --locked
 RUN strip target/release/agent-mcp || true
 
 # ---- runtime ---------------------------------------------------------------
