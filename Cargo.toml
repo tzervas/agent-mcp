@@ -1,6 +1,6 @@
 [package]
 name = "embeddenator-agent-mcp"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 # rmcp 0.8.5 is edition-2024, so the transitive floor is rustc >= 1.85 (edition 2024
 # stabilized in 1.85). This crate stays edition 2021; the pin records the new MSRV.
