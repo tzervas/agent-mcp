@@ -8,7 +8,7 @@
 //! that would require a live provider session (covered by neither layer; mocked out).
 
 use embeddenator_agent_mcp::{AgentMcp, AgentOrchestrator};
-use rmcp::model::CallToolRequestParam;
+use rmcp::model::CallToolRequestParams;
 use rmcp::ServiceExt;
 
 /// Spin up the server on one end of an in-memory duplex and an `()` client on the
@@ -82,10 +82,7 @@ async fn tools_list_exposes_every_tool_with_a_schema() {
 async fn call_tool_list_providers_returns_catalogue() {
     let client = connect().await;
     let result = client
-        .call_tool(CallToolRequestParam {
-            name: "agent_list_providers".into(),
-            arguments: None,
-        })
+        .call_tool(CallToolRequestParams::new("agent_list_providers"))
         .await
         .expect("tools/call agent_list_providers");
 
@@ -93,7 +90,7 @@ async fn call_tool_list_providers_returns_catalogue() {
     let text = result
         .content
         .first()
-        .and_then(|c| c.raw.as_text())
+        .and_then(|c| c.as_text())
         .map(|t| t.text.as_str())
         .expect("text content");
     assert!(text.contains("claude") && text.contains("grok"));
@@ -105,10 +102,7 @@ async fn call_tool_list_providers_returns_catalogue() {
 async fn call_tool_status_succeeds_without_external_calls() {
     let client = connect().await;
     let result = client
-        .call_tool(CallToolRequestParam {
-            name: "agent_status".into(),
-            arguments: None,
-        })
+        .call_tool(CallToolRequestParams::new("agent_status"))
         .await
         .expect("tools/call agent_status");
 
@@ -116,7 +110,7 @@ async fn call_tool_status_succeeds_without_external_calls() {
     let text = result
         .content
         .first()
-        .and_then(|c| c.raw.as_text())
+        .and_then(|c| c.as_text())
         .map(|t| t.text.as_str())
         .expect("text content");
     assert!(text.contains("Agent Orchestrator Status"));
@@ -130,10 +124,7 @@ async fn call_tool_unknown_name_is_never_silent_error() {
     // rmcp routes tools/call; an unknown tool must surface as an error, not a
     // silent empty success (house rule: never-silent).
     let outcome = client
-        .call_tool(CallToolRequestParam {
-            name: "agent_nonexistent".into(),
-            arguments: None,
-        })
+        .call_tool(CallToolRequestParams::new("agent_nonexistent"))
         .await;
     assert!(outcome.is_err(), "unknown tool must be a protocol error");
 

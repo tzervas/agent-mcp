@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Local parity with .github/workflows/ci.yml (manual-only remote).
+# Primary quality gate — see docs/LOCAL_CHECKS.md and CLAUDE.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 MODE="${1:-}"

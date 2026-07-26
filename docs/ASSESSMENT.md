@@ -22,7 +22,7 @@
 | Tool names / MCP shell | Present |
 | Real multi-API providers | Weak / browser path |
 | Orchestration quality | Alpha |
-| Packaging | Git dep on webpuppet-rs; docs may lag |
+| Packaging | Git dep on webpuppet-rs (pinned rev); AGENTS/CLAUDE + INTEGRATIONS docs present |
 | Cabal dependency | **Optional later only** |
 
 ---
