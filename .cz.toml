@@ -1,0 +1,27 @@
+# Commitizen configuration (commitizen-tools).
+# Install (optional): pip install commitizen  OR  uv tool install commitizen
+# This file is valid without the CLI: agents and humans follow CONTRIBUTING.md § Versioning
+# for the same rules. Canonical peer reference: tzervas/gha-runner-ctl/.cz.toml
+#
+# `version` below is the version cz bumps *from*. It must track the newest released tag:
+# if it lags, `cz bump` re-mints a version that already has a tag.
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.3.0"
+tag_format = "v$version"
+version_scheme = "semver"
+major_version_zero = true
+
+# Keep these files lockstep on every release bump (see CONTRIBUTING.md § Version files).
+# Cargo.lock is deliberately NOT listed: cz replaces line-wise and the lock file records this
+# package's version on the line AFTER its `name =` key, so a pattern here would rewrite the
+# wrong entry. Run `cargo build` after a bump to refresh it.
+version_files = [
+    "Cargo.toml:version",
+    "README.md:Status",
+]
+
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+changelog_incremental = true
