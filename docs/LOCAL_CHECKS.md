@@ -1,32 +1,55 @@
 # Local checks (CI parity)
 
-GitHub Actions workflows in this repo are **manual only** (`workflow_dispatch`).
-Day-to-day quality gates run **locally** so remote CI is not the only source of truth.
+Day-to-day quality gates run **locally** via `./scripts/check.sh`. Remote GitHub
+Actions also run on push/PR to trunk branches (and on `workflow_dispatch`).
 
-## Run everything the remote job would run
+> **Correction (2026-07-25):** older wording claimed workflows were “manual only.”
+> That was true after early polish (PR #12 era) but is **false** now:
+> `ci.yml` and `fleet-ci.yml` trigger on `push` / `pull_request` to `main` /
+> `dev` (and related), not only `workflow_dispatch`. Prefer live workflow files
+> and [CURRENT-STATE.md](CURRENT-STATE.md) over memory.
+
+## Run everything the local gate runs
 
 ```bash
+export CARGO_BUILD_JOBS=3   # recommended on shared builders
 ./scripts/check.sh
 ```
+
+Steps (see `scripts/check.sh`):
+
+1. `cargo fmt --check` (or `fmt` with `--fix`)
+2. `cargo clippy --all-targets --all-features -- -D warnings`
+3. `cargo build --all-features`
+4. `cargo test --all-features --verbose`
 
 Optional:
 
 ```bash
-./scripts/check.sh --quick   # skip slower steps (bench/audit when applicable)
-./scripts/check.sh --fix  # apply formatters instead of --check
+./scripts/check.sh --fix  # apply rustfmt instead of --check
 ```
+
+The script still documents a `--quick` mode in older prose; the checked-in
+`scripts/check.sh` only special-cases `--fix` vs default. If you need a faster
+loop, run individual cargo commands yourself.
 
 ## Tero index
 
 ```bash
 # from a checkout that can see the generator (sibling tero-mcp recommended):
 python3 ../tero-mcp/scripts/generate_lite_index.py --root "$(pwd)"
-# or:
-python3 scripts/generate_tero_index.sh   # if present as a thin wrapper
 ```
 
-Artifacts land in `docs/tero-index/` (`index.json`, `INDEX.md`, `MANIFEST.toml`, `README.md`).
+Artifacts land in `docs/tero-index/` (`index.json`, `INDEX.md`, `MANIFEST.toml`, …).
 
-## Remote (optional)
+## Remote
 
-In GitHub: **Actions → CI → Run workflow**.
+| Workflow | Typical trigger |
+|----------|-----------------|
+| `fleet-ci.yml` | push/PR to main\|dev + dispatch |
+| `fleet-security.yml` | push/PR + schedule |
+| `ci.yml` | push/PR to main\|dev\|develop + dispatch |
+| issue close/reopen | PR closed/merged events |
+
+Badge status on the README reflects **trunk** (`main`) Actions SVG, not a static green image.
+See [FLEET_STANDARDS.md](FLEET_STANDARDS.md).

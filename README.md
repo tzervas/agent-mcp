@@ -44,11 +44,9 @@ Client snippets: [docs/mcp.example.json](docs/mcp.example.json) (Claude Desktop)
 - **Consensus Gathering**: Collect multiple providers' responses to the same question
 - **Workflow Management**: Define multi-step automation workflows, including a human-review step
 
-> **Status (v0.2.1).** The MCP protocol shell is now built on the official
-> [`rmcp`](https://crates.io/crates/rmcp) Rust SDK (server + stdio transport); the orchestration
-> logic is unchanged. This project works but is early — several items above are simpler today than
-> they may sound — see [Current Limitations](#current-limitations) before relying on this in a
-> workflow.
+> **Status (v0.2.1).** MCP shell on official [`rmcp`](https://crates.io/crates/rmcp) (stdio).
+> Early project: several bullets above are target design, not shipped behavior — see
+> [Current Limitations](#current-limitations) and measured [docs/CURRENT-STATE.md](docs/CURRENT-STATE.md).
 
 ## Architecture
 
@@ -275,7 +273,10 @@ MIT
 
 ## Status & roadmap
 
-- [Assessment & gaps](docs/ASSESSMENT.md)
-- [Product roadmap & API plans](docs/ROADMAP.md)
-- [Integrations / harness compose](docs/INTEGRATIONS.md)
-- [AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md)
+**Measured status (not aspirational):** [docs/CURRENT-STATE.md](docs/CURRENT-STATE.md)  
+**How we got here:** [docs/DEVELOPMENT-PATH.md](docs/DEVELOPMENT-PATH.md)  
+**Planned work + unblockers:** [docs/ROADMAP.md](docs/ROADMAP.md)  
+**Doc index:** [docs/README.md](docs/README.md)
+
+Also: [Assessment](docs/ASSESSMENT.md) · [Integrations](docs/INTEGRATIONS.md) ·
+[AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md)
