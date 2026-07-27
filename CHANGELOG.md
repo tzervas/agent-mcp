@@ -6,6 +6,55 @@ All notable changes to `embeddenator-agent-mcp` are documented here. Format foll
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-26
+
+### Security
+- **Cleared rmcp CVE-2026-42559 (HIGH, "rmcp Streamable HTTP server transport has a DNS rebinding
+  vulnerability")** by upgrading `rmcp` 0.8.5 -> 2.2.0 (568f325). This crate builds rmcp with
+  `["server", "transport-io", "macros"]` only, so the vulnerable streamable-HTTP server transport
+  was never compiled in and the DNS-rebinding path itself was unreachable — but the advisory still
+  failed the repo's own `trivy fs --severity HIGH,CRITICAL --exit-code 1` gate on the dependency
+  version, so the SDK is upgraded rather than suppressed.
+- `Cargo.lock` is now tracked (was gitignored). This crate ships a binary (`[[bin]] agent-mcp`), so
+  the lockfile is part of the product: builds are now reproducible (`cargo build --locked` /
+  `--locked` in the Dockerfile and the release workflow), and `trivy fs` can finally see this
+  crate's dependency graph at all — committing the lockfile is what surfaced the CVE above in the
+  first place.
+
+### Changed
+- **rmcp 0.8.5 -> 2.2.0 (major SDK jump; source migration, no orchestration logic touched):**
+  `model::Content` -> `model::ContentBlock`; `ServerInfo`/`Implementation` are now
+  `#[non_exhaustive]` and built through `ServerInfo::new(..).with_protocol_version(..)
+  .with_server_info(..).with_instructions(..)` instead of struct literals; the dead
+  `tool_router: ToolRouter<Self>` field is removed (`#[tool_handler]` resolves it via the generated
+  `Self::tool_router()`); `CallToolRequestParam` -> `CallToolRequestParams::new(name)` in tests.
+  **The MCP wire contract is unchanged across this jump**: `initialize` still answers
+  protocolVersion `"2024-11-05"` with the same `serverInfo` shape, `tools/list` still returns the
+  same 7 tools with camelCase `inputSchema`, and `tools/call` still returns `content`/`isError`.
+  `src/server.rs` pins `ProtocolVersion::V_2024_11_05` explicitly rather than tracking rmcp's new
+  `LATEST` default (2025-11-25) — the negotiated protocol version does not move as a side effect of
+  this dependency bump.
+- `thiserror` moved to the 2.0 line for the crate's own direct dependency (usage is plain
+  `#[error(...)]`/`#[from]`, unchanged in 2.0); the 1.0 line stays in the graph transitively via
+  `chromiumoxide`/`tungstenite`.
+- CI: `actions/checkout` 4 -> 7, `astral-sh/setup-uv` 5 -> 7 (dependabot, major bumps).
+- CI: the release workflow now builds with `--locked`, matching the Dockerfile, so a shipped
+  release artifact can never drift from the scanned lockfile.
+
+### Fixed
+- Dockerfile: declare `HEALTHCHECK NONE` explicitly (trivy DS-0026). This image runs a stdio MCP
+  server with no listening port; a `HEALTHCHECK CMD` could only spawn a second `agent-mcp` process,
+  telling us nothing about the one serving the session, and anything probing stdin/stdout would
+  corrupt the JSON-RPC stream. `HEALTHCHECK NONE` states that intent instead of leaving trivy (or a
+  reader) to guess it was an oversight.
+
+### Governance
+- Add `.cz.toml` (commitizen config) with `major_version_zero = true`. Without it, commitizen
+  computes the next version from conventional-commit types alone, and this release's `harden:`
+  commit + the rmcp major dependency jump would otherwise mint `1.0.0` on the next `cz bump` — an
+  accidental 1.0 this project is not ready to claim. `version_files` covers `Cargo.toml` and
+  `README.md`; `Cargo.lock` is deliberately excluded (see comment in `.cz.toml`).
+
 ## [0.2.1] - 2026-07-21
 
 ### Added
