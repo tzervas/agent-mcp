@@ -18,7 +18,13 @@ major_version_zero = true
 # package's version on the line AFTER its `name =` key, so a pattern here would rewrite the
 # wrong entry. Run `cargo build` after a bump to refresh it.
 version_files = [
-    "Cargo.toml:version",
+    # Anchored `^version` on purpose. A bare `version` pattern matches EVERY line
+    # containing that substring, including a dependency's `version = "..."` key — so a
+    # dependency pinned at the same version as this package would be silently rewritten
+    # by `cz bump`. Anchoring restricts it to the [package] version line. If a
+    # `[dependencies.x]` TABLE section is ever added, its `version` also sits at line
+    # start and the hazard returns; re-tighten then.
+    "Cargo.toml:^version",
     "README.md:Status",
 ]
 
