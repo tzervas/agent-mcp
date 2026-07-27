@@ -67,7 +67,6 @@ jobs:
   trivy-fs:
     name: trivy filesystem (vuln+secret+license)
     runs-on: [self-hosted, linux, x64, podman]
-    continue-on-error: true
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
