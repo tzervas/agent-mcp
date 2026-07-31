@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Local parity with .github/workflows/ci.yml (manual-only remote).
-# Primary quality gate — see docs/LOCAL_CHECKS.md and CLAUDE.md.
+# Local parity with .github/workflows/ci.yml.
+# Primary quality gate — see docs/LOCAL_CHECKS.md and AGENTS.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 MODE="${1:-}"
@@ -11,7 +11,10 @@ export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
 export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
 export CARGO_PROFILE_TEST_DEBUG="${CARGO_PROFILE_TEST_DEBUG:-0}"
 export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
-# Use stable for fmt/clippy/test unless caller overrides
+# Thin rustc units — chromiumoxide_cdp is a single huge crate; lower peak RSS (C5).
+export CARGO_PROFILE_DEV_CODEGEN_UNITS="${CARGO_PROFILE_DEV_CODEGEN_UNITS:-16}"
+export CARGO_PROFILE_TEST_CODEGEN_UNITS="${CARGO_PROFILE_TEST_CODEGEN_UNITS:-16}"
+
 TOOLCHAIN="${RUSTUP_TOOLCHAIN:-stable}"
 CARGO=(cargo)
 if command -v rustup >/dev/null 2>&1; then
@@ -19,17 +22,25 @@ if command -v rustup >/dev/null 2>&1; then
   CARGO=(cargo "+$TOOLCHAIN")
 fi
 
-# Shared fleet hosts run concurrent agent jobs; wait for ~4GiB free before heavy rustc
-# so chromiumoxide_cdp metadata compile is less likely to be OOM-killed (C5).
+# Host flock: only one heavy agent-mcp cargo graph on the box at a time (shared fleet).
+# Prevents concurrent chromiumoxide_cdp compiles from SIGKILL (signal 9).
+LOCK_FD=
 if [[ "${CI:-}" == "true" ]]; then
-  for _ in $(seq 1 45); do
+  LOCK_PATH="${AGENT_MCP_CARGO_LOCK:-/tmp/gha-cargo-heavy.lock}"
+  exec {LOCK_FD}>"$LOCK_PATH" || true
+  if [[ -n "${LOCK_FD}" ]]; then
+    echo "acquiring host cargo lock ${LOCK_PATH} (C5 serialize)"
+    flock -w 900 "${LOCK_FD}" || echo "WARN: flock timeout — proceeding without exclusive lock"
+  fi
+  # Wait for quieter host before peak compile (xlarge claim still shares host RAM).
+  for _ in $(seq 1 60); do
     avail_kb=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 99999999)
-    if [[ "${avail_kb}" -ge 4194304 ]]; then
+    if [[ "${avail_kb}" -ge 6291456 ]]; then
       echo "MemAvailable=${avail_kb}kB — starting cargo gates"
       break
     fi
     echo "low MemAvailable=${avail_kb}kB — waiting for quieter host (C5)"
-    sleep 20
+    sleep 15
   done
 fi
 

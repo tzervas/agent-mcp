@@ -34,10 +34,12 @@ concurrency:
 
 jobs:
   build-and-test:
-    # "Build and Test" + chromium in name → pool prefers large/xlarge without hard label.
+    # Explicit xlarge: chromiumoxide_cdp needs 8c/16g; name-only sizing still shrinks under
+    # pool pressure and re-registers workers as micro → SIGKILL (C5). See gha-runner-ctl
+    # docs/DYNAMIC_POOL.md — size token on runs-on is preferred for justified heavy jobs.
     name: Build and Test chromium (local parity)
-    runs-on: [self-hosted, linux, x64, podman]
-    timeout-minutes: 30
+    runs-on: [self-hosted, linux, x64, podman, xlarge]
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
