@@ -46,7 +46,17 @@ async fn stdio_server_handshake_list_and_call() -> anyhow::Result<()> {
         .and_then(|c| c.as_text())
         .map(|t| t.text.as_str())
         .unwrap_or_default();
-    assert!(text.contains("Available AI Providers"));
+    assert!(text.contains("AI Provider Inventory"));
+    // The real binary, over real stdio, must not hand an MCP host a green check
+    // for a provider it has never contacted.
+    assert!(
+        !text.contains('\u{2705}'),
+        "a freshly spawned server has probed nothing and must claim nothing:\n{text}"
+    );
+    assert!(
+        text.contains("modality: `browser`"),
+        "the inventory must declare modality (ROADMAP B4):\n{text}"
+    );
 
     client.cancel().await?;
     Ok(())

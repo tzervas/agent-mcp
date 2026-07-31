@@ -19,7 +19,7 @@ permissions:
 jobs:
   detect:
     name: detect stack
-    runs-on: [self-hosted, linux, x64, podman]
+    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build]
     outputs:
       rust: ${{ steps.d.outputs.rust }}
       python: ${{ steps.d.outputs.python }}
@@ -49,12 +49,13 @@ jobs:
           echo "Detected rust=$rust python=$python"
 
   rust:
-    # Name includes "chromium" so dynamic pool auto-sizes xlarge (8c/16g) without a hard
-    # size label that can starve the queue when no labeled worker is warm.
+    # Explicit large (4c/8g) — not xlarge: 16g pool cannot fit xlarge + any peer job.
+    # Name "chromium" retained for auto-size fallback; size label is authoritative.
     name: cargo check/test (chromium)
     needs: detect
     if: needs.detect.outputs.rust == 'true'
-    runs-on: [self-hosted, linux, x64, podman]
+    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build, large]
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -74,23 +75,39 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
-          export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
+          export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
           export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
+          export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+          export CARGO_PROFILE_DEV_CODEGEN_UNITS="${CARGO_PROFILE_DEV_CODEGEN_UNITS:-16}"
+          LOCK=/tmp/gha-cargo-heavy.lock
+          exec 9>"$LOCK" || true
+          flock -w 900 9 || true
+          for _ in $(seq 1 60); do
+            avail_kb=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 99999999)
+            if [[ "${avail_kb}" -ge 6291456 ]]; then
+              echo "MemAvailable=${avail_kb}kB — cargo check"
+              break
+            fi
+            echo "low MemAvailable=${avail_kb}kB — waiting (C5)"
+            sleep 15
+          done
           cargo check --workspace --all-targets
       - name: cargo test
         run: |
           set -euo pipefail
           export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
-          export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
+          export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
           export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
           export CARGO_PROFILE_TEST_DEBUG="${CARGO_PROFILE_TEST_DEBUG:-0}"
+          export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+          export CARGO_PROFILE_DEV_CODEGEN_UNITS="${CARGO_PROFILE_DEV_CODEGEN_UNITS:-16}"
           cargo test --workspace
 
   python:
     name: python lint/test
     needs: detect
     if: needs.detect.outputs.python == 'true'
-    runs-on: [self-hosted, linux, x64, podman]
+    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build]
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
@@ -135,7 +152,7 @@ jobs:
     name: no stack detected
     needs: detect
     if: needs.detect.outputs.rust != 'true' && needs.detect.outputs.python != 'true'
-    runs-on: [self-hosted, linux, x64, podman]
+    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build]
     steps:
       - run: |
           echo "No Cargo.toml / pyproject detected. fleet-ci reports success with no gates."

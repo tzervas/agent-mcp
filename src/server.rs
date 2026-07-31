@@ -200,7 +200,10 @@ impl AgentMcp {
     /// Report orchestrator status (providers, workflows, per-provider stats).
     #[tool(
         name = "agent_status",
-        description = "Get the status of the agent orchestrator."
+        description = "Get the status of the agent orchestrator, including a freshly probed \
+                       provider inventory. Availability is tri-state (available / unavailable / \
+                       unknown) and every claim carries its provenance; providers that have not \
+                       been exercised are reported unknown, never available."
     )]
     async fn agent_status(&self) -> Result<CallToolResult, ErrorData> {
         let status = self.orchestrator.status().await;
@@ -212,11 +215,14 @@ impl AgentMcp {
     /// List the available AI providers and their capabilities.
     #[tool(
         name = "agent_list_providers",
-        description = "List all available AI providers and their capabilities."
+        description = "List the AI providers compiled into this server, with modality \
+                       (browser | api), endpoint, and probed availability. The inventory is \
+                       enumerated from the binary, not a hardcoded list."
     )]
     async fn agent_list_providers(&self) -> Result<CallToolResult, ErrorData> {
+        let (inventory, runtime) = self.orchestrator.provider_inventory().await;
         Ok(CallToolResult::success(vec![ContentBlock::text(
-            render_providers(),
+            render_providers(&inventory, &runtime),
         )]))
     }
 }
