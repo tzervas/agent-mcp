@@ -75,23 +75,37 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+          # Serial compile on shared host-homelab (C5 / OOM hygiene). Match ci.yml.
           export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
           export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
           export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
-          export CARGO_PROFILE_DEV_CODEGEN_UNITS="${CARGO_PROFILE_DEV_CODEGEN_UNITS:-16}"
+          export CARGO_PROFILE_DEV_CODEGEN_UNITS="${CARGO_PROFILE_DEV_CODEGEN_UNITS:-1}"
+          # Fail closed thrash guard: serialize heavy cargo + require ~6GiB free.
+          # Soft-proceed used to mask host pressure as "runner lost communication".
           LOCK=/tmp/gha-cargo-heavy.lock
-          exec 9>"$LOCK" || true
-          flock -w 900 9 || true
+          exec 9>"$LOCK"
+          if ! flock -w 900 9; then
+            echo "::error::Could not acquire ${LOCK} within 900s — another heavy cargo holds the host (C5). Fail closed; re-queue when host-homelab is quiet."
+            exit 1
+          fi
+          ready=0
+          avail_kb=0
           for _ in $(seq 1 60); do
-            avail_kb=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 99999999)
+            avail_kb=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
             if [[ "${avail_kb}" -ge 6291456 ]]; then
               echo "MemAvailable=${avail_kb}kB — cargo check"
+              ready=1
               break
             fi
             echo "low MemAvailable=${avail_kb}kB — waiting (C5)"
             sleep 15
           done
-          cargo check --workspace --all-targets
+          if [[ "${ready}" -ne 1 ]]; then
+            echo "::error::MemAvailable still below 6GiB after ~15m wait (last=${avail_kb}kB). Fail closed to avoid C5/OOM thrash — not a compile failure. Await quieter host-homelab runners."
+            exit 1
+          fi
+          # Cargo.lock is committed — pin the graph on CI.
+          cargo check --locked --workspace --all-targets
       - name: cargo test
         run: |
           set -euo pipefail
@@ -100,22 +114,33 @@ jobs:
           export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
           export CARGO_PROFILE_TEST_DEBUG="${CARGO_PROFILE_TEST_DEBUG:-0}"
           export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
-          export CARGO_PROFILE_DEV_CODEGEN_UNITS="${CARGO_PROFILE_DEV_CODEGEN_UNITS:-16}"
-          # Same thrash guards as cargo check — post-#29 fail was runner lost
-          # communication during cargo test (C5/OOM class), not a test assertion.
+          export CARGO_PROFILE_DEV_CODEGEN_UNITS="${CARGO_PROFILE_DEV_CODEGEN_UNITS:-1}"
+          export CARGO_PROFILE_TEST_CODEGEN_UNITS="${CARGO_PROFILE_TEST_CODEGEN_UNITS:-1}"
+          # Same fail-closed thrash guards as cargo check — post-#29 fail was runner
+          # lost communication mid-cargo test (C5/OOM class), not a test assertion.
           LOCK=/tmp/gha-cargo-heavy.lock
-          exec 9>"$LOCK" || true
-          flock -w 900 9 || true
+          exec 9>"$LOCK"
+          if ! flock -w 900 9; then
+            echo "::error::Could not acquire ${LOCK} within 900s — another heavy cargo holds the host (C5). Fail closed; re-queue when host-homelab is quiet."
+            exit 1
+          fi
+          ready=0
+          avail_kb=0
           for _ in $(seq 1 60); do
-            avail_kb=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 99999999)
+            avail_kb=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
             if [[ "${avail_kb}" -ge 6291456 ]]; then
               echo "MemAvailable=${avail_kb}kB — cargo test"
+              ready=1
               break
             fi
             echo "low MemAvailable=${avail_kb}kB — waiting (C5)"
             sleep 15
           done
-          cargo test --workspace
+          if [[ "${ready}" -ne 1 ]]; then
+            echo "::error::MemAvailable still below 6GiB after ~15m wait (last=${avail_kb}kB). Fail closed to avoid C5/OOM thrash — not a test failure. Await quieter host-homelab runners."
+            exit 1
+          fi
+          cargo test --locked --workspace
 
   python:
     name: python lint/test
@@ -125,7 +150,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v9
         with:
           version: "latest"
           enable-cache: true
