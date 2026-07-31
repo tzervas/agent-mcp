@@ -10,6 +10,7 @@ export RUST_BACKTRACE="${RUST_BACKTRACE:-1}"
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
 export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
 export CARGO_PROFILE_TEST_DEBUG="${CARGO_PROFILE_TEST_DEBUG:-0}"
+export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 # Use stable for fmt/clippy/test unless caller overrides
 TOOLCHAIN="${RUSTUP_TOOLCHAIN:-stable}"
 CARGO=(cargo)
@@ -18,12 +19,32 @@ if command -v rustup >/dev/null 2>&1; then
   CARGO=(cargo "+$TOOLCHAIN")
 fi
 
+# Shared fleet hosts run concurrent agent jobs; wait for ~4GiB free before heavy rustc
+# so chromiumoxide_cdp metadata compile is less likely to be OOM-killed (C5).
+if [[ "${CI:-}" == "true" ]]; then
+  for _ in $(seq 1 45); do
+    avail_kb=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 99999999)
+    if [[ "${avail_kb}" -ge 4194304 ]]; then
+      echo "MemAvailable=${avail_kb}kB — starting cargo gates"
+      break
+    fi
+    echo "low MemAvailable=${avail_kb}kB — waiting for quieter host (C5)"
+    sleep 20
+  done
+fi
+
 if [[ "$MODE" == "--fix" ]]; then
   "${CARGO[@]}" fmt
 else
   "${CARGO[@]}" fmt --check
 fi
 "${CARGO[@]}" clippy --all-targets --all-features -- -D warnings
-"${CARGO[@]}" build --all-features
-"${CARGO[@]}" test --all-features --verbose
+# Under CI, skip a full `cargo build` — `cargo test` rebuilds what it needs and
+# a second full graph compile doubles peak RAM risk for chromiumoxide_cdp.
+if [[ "${CI:-}" == "true" ]]; then
+  "${CARGO[@]}" test --all-features --verbose
+else
+  "${CARGO[@]}" build --all-features
+  "${CARGO[@]}" test --all-features --verbose
+fi
 echo "OK: checks passed ($(basename "$PWD"))"

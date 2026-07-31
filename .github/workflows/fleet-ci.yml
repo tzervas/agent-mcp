@@ -77,6 +77,16 @@ jobs:
           # Host fleet RAM is shared; default 1 avoids SIGKILL mid-compile (C5).
           export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
           export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
+          export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+          for _ in $(seq 1 45); do
+            avail_kb=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 99999999)
+            if [[ "${avail_kb}" -ge 4194304 ]]; then
+              echo "MemAvailable=${avail_kb}kB — cargo check"
+              break
+            fi
+            echo "low MemAvailable=${avail_kb}kB — waiting (C5)"
+            sleep 20
+          done
           cargo check --workspace --all-targets
       - name: cargo test
         run: |
@@ -85,6 +95,7 @@ jobs:
           export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
           export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
           export CARGO_PROFILE_TEST_DEBUG="${CARGO_PROFILE_TEST_DEBUG:-0}"
+          export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
           cargo test --workspace
 
   python:
