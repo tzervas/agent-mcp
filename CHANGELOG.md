@@ -34,6 +34,13 @@ All notable changes to `embeddenator-agent-mcp` are documented here. Format foll
 - `src/availability.rs`: the measured-availability model (`Availability`, `ProviderEvidence`,
   `BrowserRuntime::probe`, `classify`, `inventory`).
 
+### Changed
+- **Docs / CI parity (C5):** `docs/LOCAL_CHECKS.md`, README, and `AGENTS.md` document shared-host
+  cargo defaults (`CARGO_BUILD_JOBS=1`, `CARGO_INCREMENTAL=0`), the `CI=true` MemAvailable wait, and
+  skipping a redundant full `cargo build` under Actions so `chromiumoxide_cdp` is less likely to be
+  OOM-killed mid-rustc. Honesty bar in `AGENTS.md` updated for measured availability + concurrent
+  `fan_out` deadlines.
+
 ### Deferred
 - **Wave B B1–B3 (API provider backends) are still not implemented.** No HTTP backend for
   xAI / OpenAI-compatible / Anthropic exists; the `api-providers` and `self-hosted` Cargo features

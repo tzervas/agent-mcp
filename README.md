@@ -273,9 +273,13 @@ feature list above as the intended design; this section is the honest status.
 ## Local checks
 
 ```bash
-./scripts/check.sh
+./scripts/check.sh          # fmt + clippy -D warnings + build + test
+./scripts/check.sh --fix  # apply rustfmt
 cargo test --all-features
 ```
+
+On shared self-hosted CI hosts the script defaults to `CARGO_BUILD_JOBS=1` and, when `CI=true`,
+waits for free RAM before cargo (see [docs/LOCAL_CHECKS.md](docs/LOCAL_CHECKS.md)).
 
 ## License
 
