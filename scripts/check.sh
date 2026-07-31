@@ -11,9 +11,12 @@ export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
 export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
 export CARGO_PROFILE_TEST_DEBUG="${CARGO_PROFILE_TEST_DEBUG:-0}"
 export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
-# Thin rustc units — chromiumoxide_cdp is a single huge crate; lower peak RSS (C5).
-export CARGO_PROFILE_DEV_CODEGEN_UNITS="${CARGO_PROFILE_DEV_CODEGEN_UNITS:-16}"
-export CARGO_PROFILE_TEST_CODEGEN_UNITS="${CARGO_PROFILE_TEST_CODEGEN_UNITS:-16}"
+# Thin rustc units — lower peak RSS on shared medium workers (C5).
+# 16 still SIGKILL'd tokio mid-compile on host-homelab (run 30656150604); prefer 1.
+export CARGO_PROFILE_DEV_CODEGEN_UNITS="${CARGO_PROFILE_DEV_CODEGEN_UNITS:-1}"
+export CARGO_PROFILE_TEST_CODEGEN_UNITS="${CARGO_PROFILE_TEST_CODEGEN_UNITS:-1}"
+# Extra belt: rustc default can still spike; keep link/codegen quiet.
+export RUSTFLAGS="${RUSTFLAGS:--C debuginfo=0 -C strip=debuginfo}"
 
 TOOLCHAIN="${RUSTUP_TOOLCHAIN:-stable}"
 CARGO=(cargo)

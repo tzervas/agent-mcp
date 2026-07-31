@@ -16,6 +16,7 @@ Env defaults set by the script (override as needed):
 | Variable | Default | Why |
 | --- | --- | --- |
 | `CARGO_BUILD_JOBS` | `1` | Serial rustc on shared self-hosted hosts (avoids SIGKILL under mem pressure / C5) |
+| `CARGO_PROFILE_*_CODEGEN_UNITS` | `1` | Serial codegen units (16 still OOM'd tokio on medium host-homelab) |
 | `CARGO_INCREMENTAL` | `0` | Lower peak disk+RAM on chromiumoxide-heavy graphs |
 | `CARGO_PROFILE_DEV_DEBUG` / `CARGO_PROFILE_TEST_DEBUG` | `0` | Strip debuginfo in dev/test for smaller objects |
 | `CI` | unset locally | When `true` (Actions): wait until `MemAvailable` ≥ ~4 GiB, then **skip** a full `cargo build` and run `cargo test` only (test rebuilds what it needs) |
