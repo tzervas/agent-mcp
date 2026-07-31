@@ -54,7 +54,7 @@ jobs:
     name: cargo check/test (chromium)
     needs: detect
     if: needs.detect.outputs.rust == 'true'
-    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build]
+    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build, large]
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
