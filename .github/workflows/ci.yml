@@ -2,6 +2,16 @@ name: CI
 
 # Manual only — run the same checks locally via ./scripts/check.sh
 on:
+  push:
+    branches:
+      - main
+      - dev
+      - develop
+  pull_request:
+    branches:
+      - main
+      - dev
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -11,19 +21,43 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  # Host fleet RAM is shared; jobs=2 OOMed main (SIGKILL mid-syn). Match context-mcp C5.
+  CARGO_BUILD_JOBS: "1"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+  CARGO_PROFILE_DEV_CODEGEN_UNITS: "1"
+  CARGO_PROFILE_TEST_CODEGEN_UNITS: "1"
+  CARGO_INCREMENTAL: "0"
+  RUSTFLAGS: "-C debuginfo=0 -C strip=debuginfo"
+  CI: "true"
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
-    name: Build and Test (local parity)
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Explicit large (4c/8g): enough for chromiumoxide with jobs=1 + codegen thin.
+    # Avoid xlarge (8c/16g) — host pool is 16g total; xlarge cannot schedule while any
+    # other claim exists (starves behind dependabot/micro). Name still has "chromium"
+    # for auto-size fallback. See gha-runner-ctl docs/DYNAMIC_POOL.md.
+    name: Build and Test chromium (local parity)
+    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build, large]
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install system deps
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev pkg-config || true
+          set -euo pipefail
+          # Self-hosted work containers use no-new-privileges — sudo cannot escalate.
+          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+            sudo apt-get update -qq || true
+            sudo apt-get install -y libssl-dev pkg-config || true
+          else
+            echo "no passwordless sudo (expected on hardened self-hosted image) — using image packages"
+            command -v pkg-config >/dev/null 2>&1 || echo "warn: pkg-config missing"
+          fi
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable

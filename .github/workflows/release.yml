@@ -15,9 +15,9 @@ permissions:
 jobs:
   create-release:
     name: Create Release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -28,7 +28,7 @@ jobs:
         run: bash scripts/check.sh
 
       - name: Build release
-        run: cargo build --release --all-features
+        run: cargo build --release --locked --all-features
 
       - name: Checksum release binary
         # Publish channel is GitHub Releases only (single channel — not crates.io,
@@ -42,7 +42,7 @@ jobs:
 
       - name: Create GitHub Release
         if: ${{ inputs.tag != '' }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.tag }}
           generate_release_notes: true

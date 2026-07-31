@@ -7,7 +7,7 @@
 //! no external provider/browser session is ever launched (VR-5/G2: no live-key
 //! dependency in tests).
 
-use rmcp::model::CallToolRequestParam;
+use rmcp::model::CallToolRequestParams;
 use rmcp::transport::{ConfigureCommandExt, TokioChildProcess};
 use rmcp::ServiceExt;
 
@@ -37,19 +37,26 @@ async fn stdio_server_handshake_list_and_call() -> anyhow::Result<()> {
 
     // tools/call on a browser-free tool.
     let result = client
-        .call_tool(CallToolRequestParam {
-            name: "agent_list_providers".into(),
-            arguments: None,
-        })
+        .call_tool(CallToolRequestParams::new("agent_list_providers"))
         .await?;
     assert_ne!(result.is_error, Some(true));
     let text = result
         .content
         .first()
-        .and_then(|c| c.raw.as_text())
+        .and_then(|c| c.as_text())
         .map(|t| t.text.as_str())
         .unwrap_or_default();
-    assert!(text.contains("Available AI Providers"));
+    assert!(text.contains("AI Provider Inventory"));
+    // The real binary, over real stdio, must not hand an MCP host a green check
+    // for a provider it has never contacted.
+    assert!(
+        !text.contains('\u{2705}'),
+        "a freshly spawned server has probed nothing and must claim nothing:\n{text}"
+    );
+    assert!(
+        text.contains("modality: `browser`"),
+        "the inventory must declare modality (ROADMAP B4):\n{text}"
+    );
 
     client.cancel().await?;
     Ok(())

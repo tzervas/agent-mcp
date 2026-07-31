@@ -1,6 +1,39 @@
 # embeddenator-agent-mcp
 
+<!-- FLEET-BADGES:BEGIN -->
+[![CI](https://github.com/tzervas/agent-mcp/actions/workflows/fleet-ci.yml/badge.svg?branch=main)](https://github.com/tzervas/agent-mcp/actions/workflows/fleet-ci.yml?query=branch%3Amain)
+[![Security](https://github.com/tzervas/agent-mcp/actions/workflows/fleet-security.yml/badge.svg?branch=main)](https://github.com/tzervas/agent-mcp/actions/workflows/fleet-security.yml?query=branch%3Amain)
+<!-- FLEET-BADGES:END -->
+
 Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
+
+**Who / what / why:** hosts that speak MCP (Cursor, VS Code Copilot, Claude Desktop) get seven
+`agent_*` tools to route prompts across browser-backed AI providers via
+[webpuppet-rs](https://github.com/tzervas/webpuppet-rs). Compose with
+[agent-harness](https://github.com/tzervas/agent-harness) by reference — see
+[docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+
+## 5-minute path
+
+```bash
+git clone https://github.com/tzervas/agent-mcp.git
+cd agent-mcp
+
+# Requires Rust 1.85+ (MSRV). First build fetches webpuppet-rs over git.
+cargo build
+cargo test --all-features
+
+# MCP over stdio (hosts attach stdin/stdout; logs go to stderr)
+cargo run --
+# or: cargo build --release && ./target/release/agent-mcp
+```
+
+Expected: all tests pass (unit + rmcp integration + stdio e2e); the server waits for JSON-RPC
+with no banner on stdout. Full gate: `./scripts/check.sh`.
+
+Client snippets: [docs/mcp.example.json](docs/mcp.example.json) (Claude Desktop),
+[.mcp.json.example](.mcp.json.example) (Cursor / VS Code). Agent notes: [AGENTS.md](AGENTS.md),
+[CLAUDE.md](CLAUDE.md).
 
 ## Overview
 
@@ -11,7 +44,7 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 - **Consensus Gathering**: Collect multiple providers' responses to the same question
 - **Workflow Management**: Define multi-step automation workflows, including a human-review step
 
-> **Status (v0.2.0).** The MCP protocol shell is now built on the official
+> **Status (v0.2.1).** The MCP protocol shell is now built on the official
 > [`rmcp`](https://crates.io/crates/rmcp) Rust SDK (server + stdio transport); the orchestration
 > logic is unchanged. This project works but is early — several items above are simpler today than
 > they may sound — see [Current Limitations](#current-limitations) before relying on this in a
@@ -53,8 +86,8 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 | `agent_consensus` | Get consensus answer from multiple providers |
 | `agent_workflow_start` | Start a multi-step workflow |
 | `agent_workflow_step` | Execute next step in workflow |
-| `agent_status` | Get orchestration status and stats |
-| `agent_list_providers` | List available AI providers |
+| `agent_status` | Probed provider availability (tri-state, with provenance), workflow count, stats |
+| `agent_list_providers` | Enumerate compiled-in providers with modality (`browser`\|`api`), endpoint, probed availability |
 
 ## Supported Providers
 
@@ -87,41 +120,38 @@ Multi-agent orchestration MCP server for VS Code and GitHub Copilot.
 ### Building from Source
 
 ```bash
-cargo build -p embeddenator-agent-mcp --release
+cargo build --release
+# binary: target/release/agent-mcp
 ```
 
-> **Build prerequisite:** this crate depends on `embeddenator-webpuppet` via a relative path
-> (`../embeddenator-webpuppet` in `Cargo.toml`), not a published/vendored crate. To build, you need
-> that sibling checked out next to this repo (e.g. as part of the author's local multi-repo
-> workspace). A standalone clone of just this repository will not build out of the box — this is a
-> known alpha-stage limitation, not a bug in this crate's own code.
+> **Dependency:** `embeddenator-webpuppet` is pulled from
+> [webpuppet-rs](https://github.com/tzervas/webpuppet-rs) as a **git dependency** (pinned `rev` in
+> `Cargo.toml`). A standalone clone builds with network access; no sibling path checkout is required.
+> Browser-backed tools still need a working Chromium/session at call time — the MCP handshake and
+> non-browser tools (`agent_status`, `agent_list_providers`) do not.
 
-### Docker (optional, service use only)
+### MCP client config
 
-A `Dockerfile` is included for running `agent-mcp` as a standalone service (e.g. behind a
-process manager, or wherever a containerized MCP stdio server is convenient). It is **not**
-the publish path for this project — see [Releases](#releases) below — just a convenience for
-anyone who wants a containerized runtime:
+| Host | Example |
+|------|---------|
+| Cursor / VS Code | [.mcp.json.example](.mcp.json.example) |
+| Claude Desktop | [docs/mcp.example.json](docs/mcp.example.json) |
 
-```bash
-docker build -t agent-mcp .
-docker run -i agent-mcp --visible
-```
-
-### VS Code Integration
-
-Add to your VS Code `mcp.json`:
+VS Code / Cursor `mcp.json`:
 
 ```json
 {
   "servers": {
-    "agent": {
-      "command": "/path/to/agent-mcp",
-      "args": ["--visible"]
+    "agent-mcp": {
+      "type": "stdio",
+      "command": "agent-mcp",
+      "args": []
     }
   }
 }
 ```
+
+Use `"args": ["--visible"]` when debugging non-headless browser sessions.
 
 ## Usage
 
@@ -211,37 +241,45 @@ claims that describe target design rather than shipped behavior:
 - **Web-based providers only, today.** All prompting goes through `embeddenator-webpuppet` browser
   automation. API-based providers (OpenAI/Anthropic/Google) and self-hosted backends
   (Ollama/vLLM/LocalAI) are listed above as "planned" — there is no code path for them yet.
-- **"Parallel" prompting is sequential.** `agent_parallel_prompt` and `agent_consensus` drive one
-  browser session at a time (`AgentOrchestrator::parallel_prompt` in `src/orchestrator.rs`), because
-  the current backend is browser automation. True concurrent querying is future work, most likely
-  once API-based providers land.
+- **Parallel prompting is now genuinely concurrent (ROADMAP C1).** `AgentOrchestrator::parallel_prompt`
+  fans providers out through `orchestrator::fan_out`: one task per provider, each under its own copy
+  of `OrchestratorConfig::timeout`, capped by `OrchestratorConfig::max_concurrent`. Results come back
+  in the requested order; a provider that fails or times out contributes an `Err` entry rather than
+  disappearing. They still share a single `WebPuppet` instance, so real-world concurrency is bounded
+  by what that browser session supports.
 - **Consensus is a placeholder heuristic.** `agent_consensus` does not compute semantic agreement — it
   returns the longest of the collected responses as the "consensus," and the reported
   `agreement_score` is a hardcoded `0.5`, not a measured value (`AgentOrchestrator::find_consensus`).
 - **Human-in-the-loop workflow steps don't resume.** A `review`/`human_review` workflow step pauses
   the workflow (`WorkflowState::Paused`) and returns an error; there is currently no API to submit a
   human response and resume the workflow. Treat this step type as not-yet-functional.
+- **Availability is measured, and says so.** `agent_status` / `agent_list_providers` report each
+  provider as `available` / `unavailable` / `unknown` with the evidence or reason behind the verdict.
+  Only a request that recently succeeded earns `available`. A host with no CDP-capable browser
+  reports every browser-modality provider as `unavailable`. An untried provider on a host that does
+  have a browser is `unknown` — the transport exists, the login/session state does not get guessed at.
+  (Before 0.2.2 both tools claimed every provider was available, having checked nothing.)
 - **No content screening or rate limiting is implemented.** There is no security/content-filtering
   module and no request-rate-limiting logic in this crate today.
-- **Build requires a local sibling checkout** of `embeddenator-webpuppet` (see
-  [Installation](#building-from-source)) — this repo alone is not buildable as published.
+- **Browser sessions required for prompt tools.** Handshake and catalogue tools work offline; live
+  `agent_prompt` / parallel / consensus need webpuppet + authenticated browser sessions.
+- **Compose, don't vendor.** [agent-harness](https://github.com/tzervas/agent-harness) and
+  [tg-agent-relay](https://github.com/tzervas/tg-agent-relay) consume this MCP by reference —
+  see [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
-None of this is hidden in the code (see the inline comments in `src/orchestrator.rs`), but it wasn't
-previously called out here. Treat the feature list above as the intended design; this section is the
-honest status.
+None of this is hidden in the code (see the inline comments in `src/orchestrator.rs`). Treat the
+feature list above as the intended design; this section is the honest status.
 
-## Releases
+## Local checks
 
-Published releases are the single channel: [GitHub Releases](https://github.com/tzervas/agent-mcp/releases)
-against an annotated `vX.Y.Z` tag. Each release carries the built `agent-mcp` binary
-(`cargo build --release`) plus a `agent-mcp.sha256` checksum as downloadable assets — verify
-the download with `sha256sum -c agent-mcp.sha256` before trusting it. There is no crates.io
-crate and no published container image for this project; the `Dockerfile` above is optional
-and for local/service use only, not a publish target.
+```bash
+./scripts/check.sh          # fmt + clippy -D warnings + build + test
+./scripts/check.sh --fix  # apply rustfmt
+cargo test --all-features
+```
 
-Releases are cut manually via the repo's `Release` GitHub Actions workflow
-(`workflow_dispatch`, see `.github/workflows/release.yml`) — no release is auto-created on tag
-push.
+On shared self-hosted CI hosts the script defaults to `CARGO_BUILD_JOBS=1` and, when `CI=true`,
+waits for free RAM before cargo (see [docs/LOCAL_CHECKS.md](docs/LOCAL_CHECKS.md)).
 
 ## License
 
@@ -251,5 +289,5 @@ MIT
 
 - [Assessment & gaps](docs/ASSESSMENT.md)
 - [Product roadmap & API plans](docs/ROADMAP.md)
-## Semver 2026-07-10
-v0.1.0 agent-mcp (supportive mcp tooling/helper from mycelium read-only extract).
+- [Integrations / harness compose](docs/INTEGRATIONS.md)
+- [AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md)

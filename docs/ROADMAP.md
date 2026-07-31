@@ -13,6 +13,7 @@ Companion: [ASSESSMENT.md](ASSESSMENT.md).
 
 | ID | Work |
 |----|------|
+| A0 | `status` / `list_providers` report **measured** availability, never assumed — **done** |
 | A1 | Document actual parallel/consensus behavior |
 | A2 | Feature-flag browser providers vs API providers |
 | A3 | CI build without requiring local browser |
@@ -20,21 +21,25 @@ Companion: [ASSESSMENT.md](ASSESSMENT.md).
 
 ### Wave B — API providers (primary path)
 
-| ID | Work |
-|----|------|
-| B1 | Provider trait: `complete(messages) -> text` |
-| B2 | xAI / OpenAI-compatible / Anthropic HTTP backends |
-| B3 | Env-based keys only (`XAI_API_KEY`, etc.) — never tool args |
-| B4 | `list_providers` reports modality: `api` \| `browser` |
+| ID | Work | Status |
+|----|------|--------|
+| B1 | Provider trait: `complete(messages) -> text` | **not started** |
+| B2 | xAI / OpenAI-compatible / Anthropic HTTP backends | **not started** |
+| B3 | Env-based keys only (`XAI_API_KEY`, etc.) — never tool args | **not started** |
+| B4 | `list_providers` reports modality: `api` \| `browser` | **done** (`src/availability.rs`) |
+
+B1–B3 remain unimplemented. Until they land, the inventory reports every provider
+as `browser` modality and says in its own output that the `api` path does not
+exist, rather than implying a backend that is not there.
 
 ### Wave C — Real orchestration
 
-| ID | Work |
-|----|------|
-| C1 | True parallel (`tokio::join` / futures) with deadlines |
-| C2 | Consensus: vote / embed-similarity / judge-model (documented) |
-| C3 | Workflow resume + human step (NEEDS_INPUT event) |
-| C4 | Structured traces for each hop |
+| ID | Work | Status |
+|----|------|--------|
+| C1 | True parallel (`tokio::join` / futures) with deadlines | **done** (`orchestrator::fan_out`, `orchestrator::with_deadline`) |
+| C2 | Consensus: vote / embed-similarity / judge-model (documented) | **not started** — `find_consensus` is still longest-response with a hardcoded 0.5 score |
+| C3 | Workflow resume + human step (NEEDS_INPUT event) | **not started** |
+| C4 | Structured traces for each hop | **not started** |
 
 ### Wave D — Ecosystem
 

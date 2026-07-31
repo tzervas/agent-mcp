@@ -1,8 +1,8 @@
 [package]
 name = "embeddenator-agent-mcp"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
-# rmcp 0.8.5 is edition-2024, so the transitive floor is rustc >= 1.85 (edition 2024
+# rmcp 2.x is edition-2024, so the transitive floor is rustc >= 1.85 (edition 2024
 # stabilized in 1.85). This crate stays edition 2021; the pin records the new MSRV.
 rust-version = "1.85"
 authors = ["Tyler Zervas <tz-dev@vectorweight.com>"]
@@ -17,18 +17,22 @@ default = ["web-providers"]
 
 # Provider groups
 web-providers = ["embeddenator-webpuppet/all-providers"]
-api-providers = []  # Future: OpenAI, Anthropic, Google APIs
-self-hosted = []    # Future: Ollama, vLLM, LocalAI
+# DECLARED BUT EMPTY: enabling these changes nothing at all. They are placeholders
+# for ROADMAP Wave B (B1-B3) and self-hosted backends, neither of which has any
+# code behind it. `agent_list_providers` states this in its own output rather than
+# letting a feature flag imply a backend that does not exist.
+api-providers = []  # NOT IMPLEMENTED: OpenAI, Anthropic, Google APIs
+self-hosted = []    # NOT IMPLEMENTED: Ollama, vLLM, LocalAI
 
 # Integrations
-mcp-client = []     # Act as MCP client to call other MCP servers
-google-adk = []     # Future: Google Agent Development Kit
+mcp-client = []     # NOT IMPLEMENTED: act as MCP client to call other MCP servers
+google-adk = []     # NOT IMPLEMENTED: Google Agent Development Kit
 
 [dependencies]
 # Official MCP Rust SDK — server shell (framing, dispatch, tools/list schema derivation).
 # stdio-only: `transport-io` gives the (stdin, stdout) transport. OAuth/`auth` + `reqwest`
 # stay OFF (not needed for a scoped stdio server).
-rmcp = { version = "0.8", features = ["server", "transport-io", "macros"] }
+rmcp = { version = "2.2", features = ["server", "transport-io", "macros"] }
 # JSON Schema derivation for tool input structs (version aligned with rmcp's schemars).
 schemars = "1.0"
 
@@ -46,7 +50,7 @@ serde_json = "1.0"
 clap = { version = "4.4", features = ["derive"] }
 
 # Error handling
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 
 # Logging
@@ -66,4 +70,4 @@ tokio-test = "0.4"
 # Client half of rmcp, so the integration/e2e tests can drive the server over a
 # real MCP handshake (in-memory duplex + spawned-stdio child). `tokio` (with
 # `full`) already comes from [dependencies], so it is not repeated here.
-rmcp = { version = "0.8", features = ["client", "server", "transport-io", "transport-child-process", "macros"] }
+rmcp = { version = "2.2", features = ["client", "server", "transport-io", "transport-child-process", "macros"] }
