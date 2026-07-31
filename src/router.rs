@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 use embeddenator_webpuppet::Provider;
 use serde::{Deserialize, Serialize};
 
+use crate::availability::ProviderEvidence;
 use crate::error::{Error, Result};
 
 /// Router for distributing prompts across providers.
@@ -39,7 +40,7 @@ impl ProviderRouter {
 
     /// Select the best provider for a task.
     pub fn select_best(&self, task_type: TaskType) -> Result<Provider> {
-        let available = self.available_providers();
+        let available = self.candidate_providers();
 
         if available.is_empty() {
             return Err(Error::NoProviders("no healthy providers available".into()));
@@ -61,7 +62,7 @@ impl ProviderRouter {
 
     /// Select multiple providers for parallel/consensus tasks.
     pub fn select_multiple(&self, count: usize, task_type: TaskType) -> Result<Vec<Provider>> {
-        let available = self.available_providers();
+        let available = self.candidate_providers();
 
         if available.len() < count {
             return Err(Error::NoProviders(format!(
@@ -82,8 +83,17 @@ impl ProviderRouter {
         Ok(scored.into_iter().take(count).map(|(p, _)| p).collect())
     }
 
-    /// Get all available (healthy) providers.
-    pub fn available_providers(&self) -> Vec<Provider> {
+    /// Providers this router is willing to *try* for a request.
+    ///
+    /// This is a routing filter, **not** an availability claim. A provider is a
+    /// candidate unless we have recorded enough failures to rule it out, so a
+    /// never-exercised provider is a candidate by construction. Reporting that
+    /// set to a user as "available providers" is what made `agent_status` lie;
+    /// for a claim about availability use [`crate::availability`] instead, which
+    /// probes the host and requires positive evidence.
+    ///
+    /// Renamed from `available_providers` for exactly that reason.
+    pub fn candidate_providers(&self) -> Vec<Provider> {
         Provider::all()
             .into_iter()
             .filter(|p| self.is_healthy(*p))
@@ -91,8 +101,39 @@ impl ProviderRouter {
     }
 
     /// Check if a provider is healthy.
+    ///
+    /// "Healthy" means *not known-bad*: a provider with no recorded history is
+    /// healthy. This is deliberately optimistic because it gates routing, not
+    /// reporting.
     pub fn is_healthy(&self, provider: Provider) -> bool {
         self.health.get(&provider).is_none_or(|h| h.is_healthy())
+    }
+
+    /// Everything this process has actually observed, per provider.
+    ///
+    /// Providers with no recorded history are absent from the map: callers must
+    /// distinguish "no evidence" from "evidence of nothing".
+    pub fn evidence(&self) -> HashMap<Provider, ProviderEvidence> {
+        let mut out: HashMap<Provider, ProviderEvidence> = HashMap::new();
+
+        for (provider, stats) in &self.stats {
+            out.insert(
+                *provider,
+                ProviderEvidence {
+                    successful_requests: stats.successful_requests,
+                    failed_requests: stats.failed_requests,
+                    ..Default::default()
+                },
+            );
+        }
+        for (provider, health) in &self.health {
+            let entry = out.entry(*provider).or_default();
+            entry.consecutive_failures = health.consecutive_failures;
+            entry.last_success_age = health.last_success.map(|t| t.elapsed());
+            entry.last_failure_age = health.last_failure.map(|t| t.elapsed());
+        }
+
+        out
     }
 
     /// Score a provider for a given task type.
@@ -326,5 +367,42 @@ mod tests {
         let selected = router.select_best(TaskType::Search).unwrap();
         // Should prefer search-capable providers
         assert!(Provider::search_providers().contains(&selected));
+    }
+
+    #[test]
+    fn fresh_router_has_no_evidence_for_anyone() {
+        // A brand-new router has observed nothing. It must say so, rather than
+        // handing out defaults that read like observations.
+        let router = ProviderRouter::new();
+        assert!(
+            router.evidence().is_empty(),
+            "a router that has made no requests must report no evidence"
+        );
+        // ...even though every provider is still a *routing candidate*.
+        assert!(!router.candidate_providers().is_empty());
+    }
+
+    #[test]
+    fn evidence_reflects_recorded_outcomes() {
+        let mut router = ProviderRouter::new();
+        router.record_success(Provider::Claude, Duration::from_millis(120));
+        router.record_failure(Provider::Grok);
+        router.record_failure(Provider::Grok);
+
+        let evidence = router.evidence();
+
+        let claude = evidence.get(&Provider::Claude).expect("claude evidence");
+        assert_eq!(claude.successful_requests, 1);
+        assert_eq!(claude.failed_requests, 0);
+        assert_eq!(claude.consecutive_failures, 0);
+        assert!(claude.last_success_age.is_some());
+
+        let grok = evidence.get(&Provider::Grok).expect("grok evidence");
+        assert_eq!(grok.failed_requests, 2);
+        assert_eq!(grok.consecutive_failures, 2);
+        assert!(grok.last_success_age.is_none());
+
+        // Untouched providers stay absent — no evidence is not zero evidence.
+        assert!(!evidence.contains_key(&Provider::Gemini));
     }
 }

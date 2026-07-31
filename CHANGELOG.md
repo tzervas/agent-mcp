@@ -6,6 +6,42 @@ All notable changes to `embeddenator-agent-mcp` are documented here. Format foll
 
 ## [Unreleased]
 
+### Fixed
+- **`agent_status` no longer claims availability it has not checked.** It reported every
+  compiled-in provider as `✅ available` on any host, having performed zero checks — including
+  hosts with no browser installed, where nothing could possibly have worked. Availability is now
+  tri-state (`available` / `unavailable` / `unknown`), derived from a real host probe
+  (CDP-capable browser detection) plus this process's own request history, and every verdict
+  carries the evidence or reason behind it. Only a recently-succeeded request earns `available`.
+- **`agent_list_providers` no longer returns a hardcoded string.** The inventory is enumerated from
+  the providers compiled into the binary. The old static list had already drifted: it omitted
+  `kaggle`, which `agent_status` was simultaneously advertising as available.
+- **`kaggle` is now accepted by `agent_prompt`.** `parse_provider` rejected it while `agent_status`
+  recommended it, so asking for the provider the server had just suggested failed. A round-trip test
+  over `Provider::all()` guards against the drift recurring.
+- **`OrchestratorConfig::timeout` is applied.** The field existed and was never read: a knob in the
+  config surface that did nothing. Provider operations now run under it via
+  `orchestrator::with_deadline` / `orchestrator::fan_out`, and overrunning it is an explicit
+  `Error::Timeout` naming the provider and the budget.
+
+### Added
+- ROADMAP **C1 — true parallel with deadlines**: `orchestrator::fan_out` runs one task per provider
+  concurrently, each under its own deadline, bounded by `OrchestratorConfig::max_concurrent` (also
+  previously unread). Results are returned in the requested order; a provider that fails, times out,
+  or panics contributes an explicit `Err` entry instead of silently vanishing.
+- ROADMAP **B4 — modality reporting**: every inventory row declares `browser` or `api`. Nothing is
+  `api` yet, and the output says so explicitly.
+- `src/availability.rs`: the measured-availability model (`Availability`, `ProviderEvidence`,
+  `BrowserRuntime::probe`, `classify`, `inventory`).
+
+### Deferred
+- **Wave B B1–B3 (API provider backends) are still not implemented.** No HTTP backend for
+  xAI / OpenAI-compatible / Anthropic exists; the `api-providers` and `self-hosted` Cargo features
+  remain empty placeholders. This change makes the *reporting* honest about that rather than
+  starting a backend that would be half-wired.
+- Consensus (C2) is still the longest-response heuristic with a hardcoded `0.5` agreement score.
+- Workflow human-review resume (C3) still returns an error rather than a resumable NEEDS_INPUT event.
+
 ## [0.2.1] - 2026-07-21
 
 ### Added

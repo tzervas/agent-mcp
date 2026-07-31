@@ -1,18 +1,121 @@
 //! Agent orchestrator for multi-provider prompt execution.
 
 use std::collections::HashMap;
+use std::future::Future;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, Semaphore};
+use tokio::task::JoinSet;
 
 use embeddenator_webpuppet::{PromptRequest, PromptResponse, Provider, WebPuppet};
 
+use crate::availability::{self, BrowserRuntime, ProviderEntry};
 use crate::error::{Error, Result};
 use crate::router::{ProviderRouter, TaskType};
 use crate::workflow::{
     ProviderResponse, StepConfig, StepResult, StepState, Workflow, WorkflowState,
 };
+
+/// Run one fallible async operation under a wall-clock deadline.
+///
+/// Overrunning the deadline is an explicit [`Error::Timeout`] naming the operation
+/// and the budget it blew, never a silent hang and never a degraded success.
+///
+/// This and [`fan_out`] are the only places a deadline is applied, so
+/// [`OrchestratorConfig::timeout`] has exactly one meaning across the crate.
+pub async fn with_deadline<T, F>(deadline: Duration, what: &str, fut: F) -> Result<T>
+where
+    F: Future<Output = Result<T>>,
+{
+    match tokio::time::timeout(deadline, fut).await {
+        Ok(result) => result,
+        Err(_) => Err(Error::Timeout(format!(
+            "{what} exceeded the configured deadline of {}ms",
+            deadline.as_millis()
+        ))),
+    }
+}
+
+/// Fan one operation out across providers **concurrently**, each under its own
+/// deadline, with at most `max_concurrent` in flight (ROADMAP C1).
+///
+/// Results come back in the order the providers were given, regardless of the
+/// order they finish in. A provider that overruns its deadline yields
+/// [`Error::Timeout`]; a provider whose task panics or is cancelled yields
+/// [`Error::Internal`] rather than vanishing from the results.
+///
+/// The `max_concurrent` permit is acquired *before* the deadline starts, so a
+/// provider queued behind the concurrency limit still gets its full budget.
+pub async fn fan_out<T, F, Fut>(
+    providers: Vec<Provider>,
+    deadline: Duration,
+    max_concurrent: usize,
+    op: F,
+) -> Vec<(Provider, Result<T>)>
+where
+    T: Send + 'static,
+    F: Fn(Provider) -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = Result<T>> + Send + 'static,
+{
+    let count = providers.len();
+    let semaphore = Arc::new(Semaphore::new(max_concurrent.max(1)));
+    let op = Arc::new(op);
+
+    let mut tasks: JoinSet<(usize, Provider, Result<T>)> = JoinSet::new();
+    for (index, provider) in providers.iter().copied().enumerate() {
+        let semaphore = Arc::clone(&semaphore);
+        let op = Arc::clone(&op);
+        tasks.spawn(async move {
+            // The semaphore is never closed, so this only fails while the runtime
+            // is tearing down; treat that as a loud error, not a skipped provider.
+            let _permit = match semaphore.acquire_owned().await {
+                Ok(permit) => permit,
+                Err(e) => {
+                    return (
+                        index,
+                        provider,
+                        Err(Error::Internal(format!(
+                            "concurrency limiter closed before {provider} could start: {e}"
+                        ))),
+                    )
+                }
+            };
+            let result = match tokio::time::timeout(deadline, op(provider)).await {
+                Ok(result) => result,
+                Err(_) => Err(Error::Timeout(format!(
+                    "provider {provider} did not respond within the configured {}ms deadline",
+                    deadline.as_millis()
+                ))),
+            };
+            (index, provider, result)
+        });
+    }
+
+    let mut slots: Vec<Option<(Provider, Result<T>)>> = (0..count).map(|_| None).collect();
+    while let Some(joined) = tasks.join_next().await {
+        match joined {
+            Ok((index, provider, result)) => slots[index] = Some((provider, result)),
+            Err(e) => tracing::error!("provider task failed to join: {e}"),
+        }
+    }
+
+    // Never-silent: a slot we did not fill becomes an explicit error, not a gap.
+    slots
+        .into_iter()
+        .zip(providers)
+        .map(|(slot, provider)| {
+            slot.unwrap_or_else(|| {
+                (
+                    provider,
+                    Err(Error::Internal(format!(
+                        "provider task for {provider} panicked or was cancelled"
+                    ))),
+                )
+            })
+        })
+        .collect()
+}
 
 /// Orchestrator for multi-agent prompt execution.
 pub struct AgentOrchestrator {
@@ -81,15 +184,20 @@ impl AgentOrchestrator {
     ) -> Result<PromptResponse> {
         let message = message.into();
         let start = Instant::now();
+        let deadline = self.config.timeout;
 
-        let puppet = self.get_puppet().await?;
+        let puppet = with_deadline(deadline, "browser session setup", self.get_puppet()).await?;
 
-        // Authenticate if needed
-        puppet.authenticate(provider).await?;
-
-        // Send prompt
-        let request = PromptRequest::new(&message);
-        let result = puppet.prompt(provider, request).await;
+        // Authentication and the prompt itself share one budget: the caller asked
+        // for an answer within `timeout`, not for each hop to get its own.
+        let result = with_deadline(deadline, &format!("prompt to {provider}"), async {
+            puppet.authenticate(provider).await?;
+            let response = puppet
+                .prompt(provider, PromptRequest::new(&message))
+                .await?;
+            Ok(response)
+        })
+        .await;
 
         // Record result in router
         let mut router = self.router.write().await;
@@ -97,45 +205,82 @@ impl AgentOrchestrator {
             Ok(_) => router.record_success(provider, start.elapsed()),
             Err(_) => router.record_failure(provider),
         }
+        drop(router);
 
         // Cleanup
         puppet.close().await.ok();
 
-        result.map_err(Error::from)
+        result
     }
 
-    /// Send a prompt to multiple providers in parallel.
+    /// Send a prompt to multiple providers, **truly concurrently** (ROADMAP C1).
     ///
-    /// Note: Due to browser automation constraints, this actually runs sequentially
-    /// for web-based providers. API providers can run truly in parallel.
+    /// Every provider runs in its own task under its own copy of the configured
+    /// deadline, with at most `max_concurrent` in flight. A provider that fails,
+    /// times out, or panics contributes an `Err` entry; it never removes itself
+    /// from the results and never blocks the others.
+    ///
+    /// Returns one entry per requested provider, in the requested order.
     pub async fn parallel_prompt(
         &self,
         message: impl Into<String>,
         providers: Vec<Provider>,
     ) -> Result<Vec<(Provider, Result<PromptResponse>)>> {
-        let message = message.into();
-        let puppet = self.get_puppet().await?;
-
-        let mut results = Vec::new();
-
-        // Run sequentially for browser-based providers
-        // Future: API providers could run in parallel
-        for provider in providers {
-            // Authenticate
-            let auth_result = puppet.authenticate(provider).await;
-            if let Err(e) = auth_result {
-                results.push((provider, Err(Error::from(e))));
-                continue;
-            }
-
-            // Send prompt
-            let request = PromptRequest::new(&message);
-            let prompt_result = puppet.prompt(provider, request).await;
-
-            results.push((provider, prompt_result.map_err(Error::from)));
+        if providers.is_empty() {
+            return Err(Error::InvalidParams(
+                "parallel_prompt needs at least one provider".into(),
+            ));
         }
 
-        puppet.close().await.ok();
+        let message = message.into();
+        let deadline = self.config.timeout;
+
+        // One shared browser session, acquired once and under the same deadline.
+        // Failing here is a hard failure: no provider could have run.
+        let puppet =
+            Arc::new(with_deadline(deadline, "browser session setup", self.get_puppet()).await?);
+        let session = Arc::clone(&puppet);
+
+        // Each task times its own work, so the router records measured latency
+        // rather than a stand-in derived from the deadline.
+        let timed = fan_out(
+            providers,
+            deadline,
+            self.config.max_concurrent,
+            move |provider| {
+                let puppet = Arc::clone(&puppet);
+                let message = message.clone();
+                async move {
+                    let started = Instant::now();
+                    puppet.authenticate(provider).await?;
+                    let response = puppet
+                        .prompt(provider, PromptRequest::new(&message))
+                        .await?;
+                    Ok((response, started.elapsed()))
+                }
+            },
+        )
+        .await;
+
+        // Feed every outcome back into the router so the availability probe has
+        // real evidence to report later.
+        let mut router = self.router.write().await;
+        let mut results = Vec::with_capacity(timed.len());
+        for (provider, result) in timed {
+            match result {
+                Ok((response, latency)) => {
+                    router.record_success(provider, latency);
+                    results.push((provider, Ok(response)));
+                }
+                Err(e) => {
+                    router.record_failure(provider);
+                    results.push((provider, Err(e)));
+                }
+            }
+        }
+        drop(router);
+
+        session.close().await.ok();
 
         Ok(results)
     }
@@ -364,16 +509,38 @@ impl AgentOrchestrator {
         workflows.get(id).cloned()
     }
 
-    /// Get orchestrator status.
+    /// Get orchestrator status, with a **freshly probed** provider inventory.
+    ///
+    /// The probe is a host-local browser detection plus this process's own request
+    /// history; it launches no browser and makes no network call, so it is cheap
+    /// enough to run on every status call and always reflects the current host.
     pub async fn status(&self) -> OrchestratorStatus {
         let router = self.router.read().await;
         let workflows = self.workflows.read().await;
 
+        let browser_runtime = BrowserRuntime::probe();
+        let inventory = availability::inventory(&router.evidence(), &browser_runtime);
+        let available_providers = inventory
+            .iter()
+            .filter(|entry| entry.availability.is_available())
+            .map(|entry| entry.provider)
+            .collect();
+
         OrchestratorStatus {
-            available_providers: router.available_providers(),
+            available_providers,
+            inventory,
+            browser_runtime,
             active_workflows: workflows.len(),
             provider_stats: router.get_stats(),
         }
+    }
+
+    /// The provider inventory on its own, for `agent_list_providers`.
+    pub async fn provider_inventory(&self) -> (Vec<ProviderEntry>, BrowserRuntime) {
+        let router = self.router.read().await;
+        let browser_runtime = BrowserRuntime::probe();
+        let inventory = availability::inventory(&router.evidence(), &browser_runtime);
+        (inventory, browser_runtime)
     }
 }
 
@@ -399,9 +566,15 @@ impl Clone for AgentOrchestrator {
 pub struct OrchestratorConfig {
     /// Run browsers in headless mode.
     pub headless: bool,
-    /// Default timeout for operations.
+    /// Wall-clock budget for a single provider operation.
+    ///
+    /// Applied by [`with_deadline`] and [`fan_out`]; overrunning it is an explicit
+    /// [`Error::Timeout`]. (Before this was wired up the field existed but was
+    /// never read — a knob in the config surface that did nothing.)
     pub timeout: Duration,
-    /// Maximum concurrent requests.
+    /// Maximum provider requests in flight at once during a fan-out.
+    ///
+    /// Applied by [`fan_out`] via a semaphore.
     pub max_concurrent: usize,
 }
 
@@ -426,11 +599,23 @@ pub struct ConsensusResult {
     pub agreement_score: f64,
 }
 
+#[cfg(test)]
+mod tests;
+
 /// Orchestrator status.
 #[derive(Debug, Clone)]
 pub struct OrchestratorStatus {
-    /// Available providers.
+    /// Providers whose availability was **positively established**.
+    ///
+    /// This is a strict subset of [`Self::inventory`]: a provider only appears
+    /// here after a real request to it has recently succeeded. On a freshly
+    /// started server this is empty, because nothing has been established yet.
+    /// Do not read it as "the providers that exist" — that is the inventory.
     pub available_providers: Vec<Provider>,
+    /// Every compiled-in provider with its measured availability and provenance.
+    pub inventory: Vec<ProviderEntry>,
+    /// What the host browser probe found.
+    pub browser_runtime: BrowserRuntime,
     /// Number of active workflows.
     pub active_workflows: usize,
     /// Provider statistics.

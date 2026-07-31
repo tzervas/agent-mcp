@@ -13,6 +13,7 @@ use serde::Deserialize;
 
 use embeddenator_webpuppet::Provider;
 
+use crate::availability::{BrowserRuntime, ProviderEntry};
 use crate::error::{Error, Result};
 use crate::orchestrator::{ConsensusResult, OrchestratorStatus};
 
@@ -139,13 +140,32 @@ pub fn render_consensus(result: &ConsensusResult) -> String {
 }
 
 /// Render orchestrator status.
+///
+/// Every provider line carries its measured state *and the provenance of that
+/// state*. A check mark is reserved for providers a real request has recently
+/// succeeded against; anything unestablished renders as `unknown` with the reason.
 pub fn render_status(status: &OrchestratorStatus) -> String {
     let providers_text = status
-        .available_providers
+        .inventory
         .iter()
-        .map(|p| format!("- \u{2705} {}", p))
+        .map(|entry| {
+            format!(
+                "- {} `{}` ({}) — {}: {}",
+                entry.availability.marker(),
+                entry.id,
+                entry.modality,
+                entry.availability.label(),
+                entry.availability.detail()
+            )
+        })
         .collect::<Vec<_>>()
         .join("\n");
+
+    let verified = format!(
+        "**Verified available: {} of {}.**",
+        status.available_providers.len(),
+        status.inventory.len()
+    );
 
     let stats_text = status
         .provider_stats
@@ -160,8 +180,18 @@ pub fn render_status(status: &OrchestratorStatus) -> String {
         .join("\n");
 
     format!(
-        "# Agent Orchestrator Status\n\n## Available Providers\n\n{}\n\n## Active Workflows\n\n{}\n\n## Provider Statistics\n\n{}",
-        providers_text,
+        "# Agent Orchestrator Status\n\n\
+         ## Provider Availability\n\n\
+         {PROVENANCE_NOTE}\n\n\
+         {providers_text}\n\n\
+         {verified}\n\n\
+         ## Browser Runtime\n\n\
+         {}\n\n\
+         ## Active Workflows\n\n\
+         {}\n\n\
+         ## Provider Statistics\n\n\
+         {}",
+        status.browser_runtime.summary(),
         status.active_workflows,
         if stats_text.is_empty() {
             "No requests yet".to_string()
@@ -171,44 +201,58 @@ pub fn render_status(status: &OrchestratorStatus) -> String {
     )
 }
 
-/// Render the static provider catalogue.
-pub fn render_providers() -> String {
-    let providers = [
-        (
-            "claude",
-            "Claude (Anthropic)",
-            "200k context, artifacts, code execution",
-        ),
-        ("grok", "Grok (X/xAI)", "Real-time info, X integration"),
-        (
-            "gemini",
-            "Gemini (Google)",
-            "2M context, Google integration",
-        ),
-        (
-            "chatgpt",
-            "ChatGPT (OpenAI)",
-            "GPT-4o, vision, web search, code",
-        ),
-        (
-            "perplexity",
-            "Perplexity AI",
-            "Search-focused, sources cited",
-        ),
-        (
-            "notebooklm",
-            "NotebookLM (Google)",
-            "500k context, research assistant",
-        ),
-    ];
+/// What was and was not checked. Printed on every availability report so a reader
+/// never has to guess how much a green check is worth.
+const PROVENANCE_NOTE: &str = "\
+Probed at call time: which CDP-capable browsers are installed on this host, and \
+this process's own request history.\n\
+Not probed: provider login/session state — only a real request can establish that, \
+so an untried provider is reported `unknown`, not available.";
 
-    let text = providers
+/// Render the provider inventory.
+///
+/// Built from the compiled-in provider set and a live host probe, so it cannot
+/// drift from what the binary can actually address. (It replaced a hardcoded
+/// six-entry string that had already drifted: it omitted `kaggle`, which
+/// `agent_status` was simultaneously reporting as available.)
+pub fn render_providers(inventory: &[ProviderEntry], runtime: &BrowserRuntime) -> String {
+    let rows = inventory
         .iter()
-        .map(|(id, name, caps)| format!("## {} (`{}`)\n\n{}\n", name, id, caps))
+        .map(|entry| {
+            format!(
+                "## `{}`\n\n\
+                 - modality: `{}`\n\
+                 - endpoint: {}\n\
+                 - availability: {} {} — {}\n",
+                entry.id,
+                entry.modality,
+                entry.endpoint,
+                entry.availability.marker(),
+                entry.availability.label(),
+                entry.availability.detail()
+            )
+        })
         .collect::<Vec<_>>()
         .join("\n");
 
-    format!("# Available AI Providers\n\n{}", text)
+    format!(
+        "# AI Provider Inventory\n\n\
+         {} provider(s), enumerated from the providers compiled into this binary — \
+         not a hand-maintained list.\n\n\
+         {PROVENANCE_NOTE}\n\n\
+         {}\n\n\
+         ## Notes\n\n\
+         - Browser runtime: {}\n\
+         - Every provider above is `browser` modality. The `api` modality \
+           (ROADMAP Wave B, B1-B3: HTTP backends for xAI / OpenAI-compatible / \
+           Anthropic) is **not implemented**, so no provider can report it yet.\n\
+         - Capability claims (context window, tool support) are deliberately \
+           omitted: agent-mcp has no way to verify them, and the previous \
+           hardcoded blurbs were unverified.\n",
+        inventory.len(),
+        rows,
+        runtime.summary()
+    )
 }
 
 // =============================================================================
@@ -219,6 +263,11 @@ pub fn render_providers() -> String {
 ///
 /// Never-silent: an unknown provider is an explicit [`Error::InvalidParams`],
 /// not a silent default (house rule #2 / G2).
+///
+/// Every id this accepts must be one the inventory advertises, and vice versa —
+/// `kaggle` used to be missing here while `agent_status` listed it as available,
+/// so asking for the provider the server had just recommended failed. The
+/// `parse_provider_round_trips_every_compiled_provider` test guards that.
 pub fn parse_provider(s: &str) -> Result<Provider> {
     match s.to_lowercase().as_str() {
         "claude" => Ok(Provider::Claude),
@@ -227,6 +276,7 @@ pub fn parse_provider(s: &str) -> Result<Provider> {
         "chatgpt" | "openai" => Ok(Provider::ChatGpt),
         "perplexity" => Ok(Provider::Perplexity),
         "notebooklm" | "notebook" => Ok(Provider::NotebookLm),
+        "kaggle" => Ok(Provider::Kaggle),
         _ => Err(Error::InvalidParams(format!("unknown provider: {}", s))),
     }
 }

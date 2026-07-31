@@ -86,8 +86,8 @@ Client snippets: [docs/mcp.example.json](docs/mcp.example.json) (Claude Desktop)
 | `agent_consensus` | Get consensus answer from multiple providers |
 | `agent_workflow_start` | Start a multi-step workflow |
 | `agent_workflow_step` | Execute next step in workflow |
-| `agent_status` | Get orchestration status and stats |
-| `agent_list_providers` | List available AI providers |
+| `agent_status` | Probed provider availability (tri-state, with provenance), workflow count, stats |
+| `agent_list_providers` | Enumerate compiled-in providers with modality (`browser`\|`api`), endpoint, probed availability |
 
 ## Supported Providers
 
@@ -241,16 +241,24 @@ claims that describe target design rather than shipped behavior:
 - **Web-based providers only, today.** All prompting goes through `embeddenator-webpuppet` browser
   automation. API-based providers (OpenAI/Anthropic/Google) and self-hosted backends
   (Ollama/vLLM/LocalAI) are listed above as "planned" — there is no code path for them yet.
-- **"Parallel" prompting is sequential.** `agent_parallel_prompt` and `agent_consensus` drive one
-  browser session at a time (`AgentOrchestrator::parallel_prompt` in `src/orchestrator.rs`), because
-  the current backend is browser automation. True concurrent querying is future work, most likely
-  once API-based providers land.
+- **Parallel prompting is now genuinely concurrent (ROADMAP C1).** `AgentOrchestrator::parallel_prompt`
+  fans providers out through `orchestrator::fan_out`: one task per provider, each under its own copy
+  of `OrchestratorConfig::timeout`, capped by `OrchestratorConfig::max_concurrent`. Results come back
+  in the requested order; a provider that fails or times out contributes an `Err` entry rather than
+  disappearing. They still share a single `WebPuppet` instance, so real-world concurrency is bounded
+  by what that browser session supports.
 - **Consensus is a placeholder heuristic.** `agent_consensus` does not compute semantic agreement — it
   returns the longest of the collected responses as the "consensus," and the reported
   `agreement_score` is a hardcoded `0.5`, not a measured value (`AgentOrchestrator::find_consensus`).
 - **Human-in-the-loop workflow steps don't resume.** A `review`/`human_review` workflow step pauses
   the workflow (`WorkflowState::Paused`) and returns an error; there is currently no API to submit a
   human response and resume the workflow. Treat this step type as not-yet-functional.
+- **Availability is measured, and says so.** `agent_status` / `agent_list_providers` report each
+  provider as `available` / `unavailable` / `unknown` with the evidence or reason behind the verdict.
+  Only a request that recently succeeded earns `available`. A host with no CDP-capable browser
+  reports every browser-modality provider as `unavailable`. An untried provider on a host that does
+  have a browser is `unknown` — the transport exists, the login/session state does not get guessed at.
+  (Before 0.2.2 both tools claimed every provider was available, having checked nothing.)
 - **No content screening or rate limiting is implemented.** There is no security/content-filtering
   module and no request-rate-limiting logic in this crate today.
 - **Browser sessions required for prompt tools.** Handshake and catalogue tools work offline; live
