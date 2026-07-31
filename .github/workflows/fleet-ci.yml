@@ -49,12 +49,12 @@ jobs:
           echo "Detected rust=$rust python=$python"
 
   rust:
-    # Explicit xlarge (8c/16g): chromiumoxide_cdp SIGKILLs under medium/micro shrink.
-    # Name "chromium" is retained for auto-size fallback; size label is authoritative.
+    # Explicit large (4c/8g) — not xlarge: 16g pool cannot fit xlarge + any peer job.
+    # Name "chromium" retained for auto-size fallback; size label is authoritative.
     name: cargo check/test (chromium)
     needs: detect
     if: needs.detect.outputs.rust == 'true'
-    runs-on: [self-hosted, linux, x64, podman, xlarge]
+    runs-on: [self-hosted, linux, x64, podman, large]
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
