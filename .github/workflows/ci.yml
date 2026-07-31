@@ -39,7 +39,7 @@ jobs:
     # other claim exists (starves behind dependabot/micro). Name still has "chromium"
     # for auto-size fallback. See gha-runner-ctl docs/DYNAMIC_POOL.md.
     name: Build and Test chromium (local parity)
-    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, large]
+    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build]
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
