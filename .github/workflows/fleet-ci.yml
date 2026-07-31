@@ -74,14 +74,15 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
-          export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
+          # Host fleet RAM is shared; default 1 avoids SIGKILL mid-compile (C5).
+          export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
           export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
           cargo check --workspace --all-targets
       - name: cargo test
         run: |
           set -euo pipefail
           export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
-          export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
+          export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
           export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
           export CARGO_PROFILE_TEST_DEBUG="${CARGO_PROFILE_TEST_DEBUG:-0}"
           cargo test --workspace

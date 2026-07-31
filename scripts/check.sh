@@ -6,6 +6,10 @@ cd "$(dirname "$0")/.."
 MODE="${1:-}"
 export CARGO_TERM_COLOR="${CARGO_TERM_COLOR:-always}"
 export RUST_BACKTRACE="${RUST_BACKTRACE:-1}"
+# Prefer serial compile on shared self-hosted hosts (avoids SIGKILL under mem pressure).
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
+export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
+export CARGO_PROFILE_TEST_DEBUG="${CARGO_PROFILE_TEST_DEBUG:-0}"
 # Use stable for fmt/clippy/test unless caller overrides
 TOOLCHAIN="${RUSTUP_TOOLCHAIN:-stable}"
 CARGO=(cargo)
