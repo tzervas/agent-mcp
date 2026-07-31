@@ -17,12 +17,16 @@ default = ["web-providers"]
 
 # Provider groups
 web-providers = ["embeddenator-webpuppet/all-providers"]
-api-providers = []  # Future: OpenAI, Anthropic, Google APIs
-self-hosted = []    # Future: Ollama, vLLM, LocalAI
+# DECLARED BUT EMPTY: enabling these changes nothing at all. They are placeholders
+# for ROADMAP Wave B (B1-B3) and self-hosted backends, neither of which has any
+# code behind it. `agent_list_providers` states this in its own output rather than
+# letting a feature flag imply a backend that does not exist.
+api-providers = []  # NOT IMPLEMENTED: OpenAI, Anthropic, Google APIs
+self-hosted = []    # NOT IMPLEMENTED: Ollama, vLLM, LocalAI
 
 # Integrations
-mcp-client = []     # Act as MCP client to call other MCP servers
-google-adk = []     # Future: Google Agent Development Kit
+mcp-client = []     # NOT IMPLEMENTED: act as MCP client to call other MCP servers
+google-adk = []     # NOT IMPLEMENTED: Google Agent Development Kit
 
 [dependencies]
 # Official MCP Rust SDK — server shell (framing, dispatch, tools/list schema derivation).

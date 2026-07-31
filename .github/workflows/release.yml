@@ -15,7 +15,7 @@ permissions:
 jobs:
   create-release:
     name: Create Release
-    runs-on: [self-hosted, linux, x64, podman]
+    runs-on: [self-hosted, linux, x64, podman, compute-cpu, host-homelab, scribe-cpu-build]
     steps:
       - uses: actions/checkout@v7
 
