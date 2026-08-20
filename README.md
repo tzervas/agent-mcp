@@ -1,4 +1,4 @@
-# embeddenator-agent-mcp
+# agent-mcp
 
 <!-- FLEET-BADGES:BEGIN -->
 [![CI](https://github.com/tzervas/agent-mcp/actions/workflows/fleet-ci.yml/badge.svg?branch=main)](https://github.com/tzervas/agent-mcp/actions/workflows/fleet-ci.yml?query=branch%3Amain)
@@ -37,7 +37,7 @@ Client snippets: [docs/mcp.example.json](docs/mcp.example.json) (Claude Desktop)
 
 ## Overview
 
-`embeddenator-agent-mcp` provides a Model Context Protocol (MCP) server for orchestrating prompts across multiple AI providers. It enables:
+`agent-mcp` provides a Model Context Protocol (MCP) server for orchestrating prompts across multiple AI providers. It enables:
 
 - **Intelligent Provider Routing**: Automatically select the best provider based on task type
 - **Multi-Provider Querying**: Send the same prompt to multiple providers and collect their responses
@@ -59,7 +59,7 @@ Client snippets: [docs/mcp.example.json](docs/mcp.example.json) (Claude Desktop)
                             │ MCP Protocol (rmcp SDK — JSON-RPC over stdio)
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   embeddenator-agent-mcp                         │
+│                   agent-mcp                         │
 │              ┌────────────┐ ┌────────────┐                       │
 │              │ Workflow   │ │ Provider   │                       │
 │              │ Manager    │ │ Router     │                       │
